@@ -23,7 +23,9 @@ mkdir -p dist
 ARCHIVE_NAME="pg_dbml-${VERSION}.tar.gz"
 ARCHIVE_PATH="dist/${ARCHIVE_NAME}"
 
-tar -czf "$ARCHIVE_PATH" pg_dbml pg_dbml.sql
+# COPYFILE_DISABLE=1 prevents tar from including macOS resource forks (._ files)
+# --exclude='.DS_Store' prevents including macOS finder metadata
+COPYFILE_DISABLE=1 tar --exclude='.DS_Store' -czf "$ARCHIVE_PATH" pg_dbml pg_dbml.sql
 
 if [ $? -eq 0 ]; then
 	echo "✅ Archive created: $ARCHIVE_PATH"
@@ -42,7 +44,7 @@ cat > "$FORMULA_PATH" <<EOF
 class PgDbml < Formula
   desc "Pure SQL exporter from PostgreSQL to DBML"
   homepage "https://github.com/heptau/pg_dbml"
-  url "https://github.com/heptau/pg_dbml/archive/refs/tags/v${VERSION}.tar.gz"
+  url "https://github.com/heptau/pg_dbml/releases/download/v${VERSION}/${ARCHIVE_NAME}"
   sha256 "${SHA}"
   version "${VERSION}"
 
