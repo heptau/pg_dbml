@@ -98,10 +98,10 @@ SQL=$(cat "$SQL_FILE")
 
 # Execute query
 if [[ -n "$CONNSTR" ]]; then
-	psql "$CONNSTR" --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
+	psql "$CONNSTR" --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
 else
 	psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" \
-			 --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
+			 --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
 fi
 
 echo "✅ DBML generated → $OUTPUT"
