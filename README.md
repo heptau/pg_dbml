@@ -81,10 +81,20 @@ pg_dbml postgresql://postgres:password@localhost:5432/my_production_db
 | `--port` | `-p` | PostgreSQL port. | No | `5432` |
 | `--user` | `-U` | Database user name. | No | `postgres` |
 | `--output` | `-o` | Path where the `.dbml` file will be saved. | No | `[DBNAME].dbml` |
+| `--quiet` | `-q` | Suppress success message. | No | |
+| `--dry-run` | | Preview output without writing file. | No | |
 | `--version`| `-v` | Show script version. | No | |
 | `--help` | | Show help message. | No | |
 
 *\* Required unless provided via a connection string.*
+
+**Examples:**
+
+```bash
+pg_dbml -d mydb
+pg_dbml -d mydb -q
+pg_dbml postgresql://postgres:password@localhost:5432/mydb --dry-run
+```
 
 ## 📚 Technical Architecture
 

@@ -304,6 +304,15 @@
 						</div>
 					</div>
 
+					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.dryrun_title">Náhled (dry-run)</h3>
+					<div class="code-block" style="margin-top:0.75rem;">
+						<div class="terminal-header"><span>terminal</span></div>
+						<div class="code-content font-mono">
+							<p style="color:var(--pg-muted)" data-t="usage.dryrun_comment"># Náhled bez zápisu do souboru</p>
+							<p><span style="color:var(--pg-green)">$</span> pg_dbml -d mydb <span style="color:var(--pg-cyan)">--dry-run</span></p>
+						</div>
+					</div>
+
 					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.params_title">Přehled parametrů</h3>
 					<div class="table-container">
 						<table>
@@ -345,6 +354,18 @@
 									<td><code>-o</code></td>
 									<td data-t="params.output">Cesta k výslednému souboru.</td>
 									<td><code>[DBNAME].dbml</code></td>
+								</tr>
+								<tr>
+									<td><code>--quiet</code></td>
+									<td><code>-q</code></td>
+									<td data-t="params.quiet">Potlačí výpis úspěchu.</td>
+									<td>-</td>
+								</tr>
+								<tr>
+									<td><code>--dry-run</code></td>
+									<td>-</td>
+									<td data-t="params.dryrun">Náhled bez zápisu.</td>
+									<td>-</td>
 								</tr>
 								<tr>
 									<td><code>--version</code></td>

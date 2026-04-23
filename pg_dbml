@@ -4,6 +4,13 @@
 # =============================================================================
 
 VERSION="1.0.0"
+QUIET=0
+DRY_RUN=0
+
+if ! command -v psql &> /dev/null; then
+	echo "Error: 'psql' not found. Please install PostgreSQL client." >&2
+	exit 1
+fi
 
 if [[ "$1" == "--version" || "$1" == "-v" ]]; then
 	echo "$VERSION"
@@ -21,12 +28,15 @@ Parameters:
 	-U, --user USER      User (default: postgres)
 	-d, --dbname DBNAME  Database name
 	-o, --output FILE    Output file (default: DBNAME.dbml)
+	-q, --quiet          Suppress success message
+	    --dry-run        Preview output without writing file
 	-v, --version        Show script version
 	--help               This help
 
 Examples:
 	pg_dbml -d mydb
-	pg_dbml postgresql://postgres@localhost:5432/mydb
+	pg_dbml -d mydb -q
+	pg_dbml -d mydb --dry-run
 EOF
 }
 
@@ -37,18 +47,22 @@ USER="postgres"
 DBNAME=""
 OUTPUT=""
 CONNSTR=""
+QUIET=0
+DRY_RUN=0
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
 		-h|--host)      HOST="$2"; shift 2 ;;
 		-p|--port)      PORT="$2"; shift 2 ;;
-		-U|--user)      USER="$2"; shift 2 ;;
+		-U|--user)     USER="$2"; shift 2 ;;
 		-d|--dbname)    DBNAME="$2"; shift 2 ;;
-		-o|--output)    OUTPUT="$2"; shift 2 ;;
-		-v|--version)   echo "$VERSION"; exit 0 ;;
-		--help)         usage; exit 0 ;;
-		postgresql://*) CONNSTR="$1"; shift ;;
-		*)              DBNAME="${DBNAME:-$1}"; shift ;;
+		-o|--output)   OUTPUT="$2"; shift 2 ;;
+		-q|--quiet)    QUIET=1; shift ;;
+		--dry-run)     DRY_RUN=1; shift ;;
+		-v|--version)  echo "$VERSION"; exit 0 ;;
+		--help)        usage; exit 0 ;;
+		postgresql://*)  CONNSTR="$1"; shift ;;
+		-*)           DBNAME="${DBNAME:-$1}"; shift ;;
 	esac
 done
 
@@ -96,12 +110,22 @@ fi
 
 SQL=$(cat "$SQL_FILE")
 
-# Execute query
-if [[ -n "$CONNSTR" ]]; then
-	psql "$CONNSTR" --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
+if [[ $DRY_RUN == 1 ]]; then
+	if [[ -n "$CONNSTR" ]]; then
+		psql "$CONNSTR" --no-psqlrc --tuples-only --no-align -c "$SQL"
+	else
+		psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" \
+			 --no-psqlrc --tuples-only --no-align -c "$SQL"
+	fi
 else
-	psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" \
+	if [[ -n "$CONNSTR" ]]; then
+		psql "$CONNSTR" --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
+	else
+		psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" \
 			 --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
-fi
+	fi
 
-echo "✅ DBML generated → $OUTPUT"
+	if [[ $QUIET == 0 ]]; then
+		echo "✅ DBML generated → $OUTPUT"
+	fi
+fi
