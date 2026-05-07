@@ -49,8 +49,8 @@ columns_dbml AS (
 									CASE WHEN column_comment ~ E'[\n\r]'
 										THEN format('''''''%s''''''', replace(column_comment, '''', ''''''))
 										ELSE format('''%s''', replace(column_comment, '''', ''''''))
-							  		END)
-						  	END
+									  END)
+							  END
 						))
 						|| ']'
 					ELSE ''
@@ -119,9 +119,12 @@ foreign_keys AS (
 			ns2.nspname, cl2.relname,
 			CASE WHEN array_length(con.confkey,1) = 1
 				 THEN (SELECT quote_ident(attname) FROM pg_attribute WHERE attrelid = con.confrelid AND attnum = con.confkey[1])
-				 ELSE '(' || (SELECT string_agg(quote_ident(attname), ', ') FROM pg_attribute WHERE attrelid = con.confrelid AND attnum = ANY(con.confkey)) || ')'
+				 ELSE '(' || (SELECT string_agg(quote_ident(attname), ', ') FROM pg_attribute WHERE attrelid = con.confrelid AND attnum = ANY(confkey)) || ')'
 			END
-		) AS ref_line
+		) AS ref_line,
+		ns1.nspname AS schema_name,
+		cl1.relname AS table_name,
+		con.conname AS constraint_name
 	FROM pg_constraint AS con
 	JOIN pg_class AS cl1 ON cl1.oid = con.conrelid
 	JOIN pg_namespace AS ns1 ON ns1.oid = cl1.relnamespace
@@ -152,7 +155,7 @@ SELECT
 	) ||
 	CASE
 		WHEN EXISTS (SELECT FROM foreign_keys)
-		THEN E'\n\n' || (SELECT string_agg(ref_line, E'\n') FROM foreign_keys)
+		THEN E'\n\n' || (SELECT string_agg(ref_line, E'\n' ORDER BY schema_name, table_name, constraint_name) FROM foreign_keys)
 		ELSE ''
 	END AS dbml_output
 FROM tables AS t
