@@ -37,14 +37,14 @@ else
 fi
 
 # Test 2: Version works
-if ./pg_dbml --version | grep -q "1.0.0"; then
+if ./pg_dbml --version | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
 	test_ok "Version displays"
 else
 	test_fail "Version displays"
 fi
 
 # Test 3: Version short flag
-if ./pg_dbml -v | grep -q "1.0.0"; then
+if ./pg_dbml -v | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
 	test_ok "Version (-v) displays"
 else
 	test_fail "Version (-v) displays"

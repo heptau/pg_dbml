@@ -103,6 +103,18 @@ The architecture consists of two files to maximize developer experience and main
 1.  **`pg_dbml` (Bash orchestrator):** Parses command-line arguments, safely handles database connections via `psql`, and writes the final stream to the DBML file.
 2.  **`pg_dbml.sql` (Core Engine):** A complex, pure SQL query that queries PostgreSQL's internal `pg_catalog` and `information_schema` tables. By keeping this in a separate file, contributors benefit from full syntax highlighting and standard SQL debugging.
 
+## 🛠 Development
+
+Run tests and build artifacts using `make`:
+
+```bash
+make         # Show help
+make test    # Run tests
+make build   # Build release artifacts (archive + Homebrew formula)
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
 ## ⚖️ License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

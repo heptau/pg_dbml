@@ -4,45 +4,72 @@ tables AS (
 		n.nspname AS schema_name,
 		c.relname AS table_name,
 		c.oid AS table_oid,
-		obj_description(c.oid) AS table_comment
+		NULLIF(btrim(obj_description(c.oid)), '') AS table_comment
 	FROM pg_class AS c
 	JOIN pg_namespace AS n ON n.oid = c.relnamespace
 	WHERE c.relkind = 'r'
 	  AND n.nspname NOT IN ('pg_catalog', 'information_schema')
 	  AND n.nspname !~ '^pg_toast'
 ),
+pk_columns AS (
+	SELECT conrelid AS table_oid, unnest(conkey) AS attnum
+	FROM pg_constraint
+	WHERE contype = 'p'
+	  AND conrelid IN (SELECT table_oid FROM tables)
+),
+unique_columns AS (
+	SELECT conrelid AS table_oid, conkey[1] AS attnum
+	FROM pg_constraint
+	WHERE contype = 'u' AND array_length(conkey, 1) = 1
+	  AND conrelid IN (SELECT table_oid FROM tables)
+),
 columns AS (
 	SELECT
 		t.table_oid,
 		a.attname AS column_name,
 		a.attnum AS ordinal_position,
-		format_type(a.atttypid, a.atttypmod) AS data_type,
+		replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+			format_type(a.atttypid, a.atttypmod),
+			'character varying', 'varchar'),
+			'bit varying', 'varbit'),
+			'timestamp without time zone', 'timestamp'),
+			'timestamp with time zone', 'timestamptz'),
+			'time without time zone', 'time'),
+			'time with time zone', 'timetz'),
+			'double precision', 'float8'),
+			'boolean', 'bool'),
+			'integer', 'int'),
+			'character(', 'char('),
+			'character', 'char')
+		AS data_type,
 		NOT a.attnotnull AS is_nullable,
 		pg_get_expr(d.adbin, d.adrelid) AS column_default,
-		col_description(t.table_oid, a.attnum) AS column_comment,
-		EXISTS (SELECT FROM pg_constraint WHERE conrelid = t.table_oid AND contype = 'p' AND a.attnum = ANY(conkey)) AS is_pk,
-		EXISTS (SELECT FROM pg_constraint WHERE conrelid = t.table_oid AND contype = 'u' AND array_length(conkey,1) = 1 AND a.attnum = ANY(conkey)) AS is_unique
+		NULLIF(btrim(col_description(t.table_oid, a.attnum)), '') AS column_comment,
+		pk.attnum IS NOT NULL AS is_pk,
+		uq.attnum IS NOT NULL AS is_unique
 	FROM tables AS t
 	JOIN pg_attribute AS a ON a.attrelid = t.table_oid
 	LEFT JOIN pg_attrdef AS d ON d.adrelid = t.table_oid AND d.adnum = a.attnum
+	LEFT JOIN pk_columns AS pk ON pk.table_oid = t.table_oid AND pk.attnum = a.attnum
+	LEFT JOIN unique_columns AS uq ON uq.table_oid = t.table_oid AND uq.attnum = a.attnum
 	WHERE a.attnum > 0 AND NOT a.attisdropped
 ),
 columns_dbml AS (
 	SELECT
 		table_oid,
 		string_agg(
-			format('  "%I" %s%s',
+			format('  %I %s%s',
 				column_name,
-				CASE WHEN data_type ~ ' ' THEN format('"%s"', data_type) ELSE data_type END,
+				CASE WHEN data_type LIKE '% %' THEN format('"%s"', data_type) ELSE data_type END,
 				CASE WHEN is_pk OR NOT is_nullable OR is_unique OR column_default IS NOT NULL OR column_comment IS NOT NULL
 					THEN
 						' [' ||
-						trim(trailing ', ' FROM concat_ws(', ',
+						concat_ws(', ',
 							CASE WHEN is_pk THEN 'pk' END,
 							CASE WHEN is_unique THEN 'unique' END,
 							CASE WHEN NOT is_nullable THEN 'not null' END,
 							CASE WHEN column_default IS NOT NULL
-								THEN format('default: %s', replace(column_default, '"', '""'))
+								THEN format('default: %s', replace(regexp_replace(column_default, '::"?[a-z][a-z0-9_ ]*"?(\([^)]*\))?(\[\])*$', ''), '"', '""'))
 							END,
 							CASE WHEN column_comment IS NOT NULL
 								THEN format('note: %s',
@@ -51,7 +78,7 @@ columns_dbml AS (
 										ELSE format('''%s''', replace(column_comment, '''', ''''''))
 									  END)
 							  END
-						))
+						)
 						|| ']'
 					ELSE ''
 				END
@@ -89,7 +116,7 @@ indexes_dbml AS (
 			string_agg(
 				format('%s [%s]',
 					CASE WHEN columns_list ~ ',' THEN format('(%s)', columns_list) ELSE columns_list END,
-					trim(trailing ', ' FROM concat_ws(', ',
+					concat_ws(', ',
 						CASE WHEN indisprimary THEN 'pk' END,
 						format('type: %s', index_type),
 						CASE WHEN indisunique AND NOT indisprimary THEN 'unique' END,
@@ -97,7 +124,7 @@ indexes_dbml AS (
 						CASE WHEN include_columns IS NOT NULL
 							 THEN format('note: ''INCLUDE (%s)''', include_columns)
 						END
-					))
+					)
 				),
 				E'\n    '
 				ORDER BY indisprimary DESC, indisunique DESC, index_name
@@ -106,26 +133,36 @@ indexes_dbml AS (
 	FROM indexes
 	GROUP BY table_oid
 ),
+fk_cols AS (
+	SELECT
+		con.oid AS con_oid,
+		string_agg(quote_ident(src.attname), ', ' ORDER BY ordinality) AS src_cols,
+		string_agg(quote_ident(tgt.attname), ', ' ORDER BY ordinality) AS tgt_cols
+	FROM pg_constraint AS con
+	JOIN pg_class AS cl1 ON cl1.oid = con.conrelid
+	JOIN pg_namespace AS ns1 ON ns1.oid = cl1.relnamespace
+	CROSS JOIN LATERAL unnest(con.conkey, con.confkey) WITH ORDINALITY AS u(src_attnum, tgt_attnum, ordinality)
+	JOIN pg_attribute AS src ON src.attrelid = con.conrelid  AND src.attnum = u.src_attnum
+	JOIN pg_attribute AS tgt ON tgt.attrelid = con.confrelid AND tgt.attnum = u.tgt_attnum
+	WHERE con.contype = 'f'
+	  AND ns1.nspname NOT IN ('pg_catalog', 'information_schema')
+	GROUP BY con.oid, array_length(con.conkey, 1)
+),
 foreign_keys AS (
 	SELECT
 		format(
-			'Ref %I: "%I"."%I".%s > "%I"."%I".%s',
+			'Ref %I: %I.%I.%s > %I.%I.%s',
 			con.conname,
 			ns1.nspname, cl1.relname,
-			CASE WHEN array_length(con.conkey, 1) = 1
-				 THEN (SELECT quote_ident(attname) FROM pg_attribute WHERE attrelid = con.conrelid AND attnum = con.conkey[1])
-				 ELSE '(' || (SELECT string_agg(quote_ident(attname), ', ') FROM pg_attribute WHERE attrelid = con.conrelid AND attnum = ANY(conkey)) || ')'
-			END,
+			CASE WHEN array_length(con.conkey, 1) = 1 THEN fc.src_cols ELSE '(' || fc.src_cols || ')' END,
 			ns2.nspname, cl2.relname,
-			CASE WHEN array_length(con.confkey,1) = 1
-				 THEN (SELECT quote_ident(attname) FROM pg_attribute WHERE attrelid = con.confrelid AND attnum = con.confkey[1])
-				 ELSE '(' || (SELECT string_agg(quote_ident(attname), ', ') FROM pg_attribute WHERE attrelid = con.confrelid AND attnum = ANY(confkey)) || ')'
-			END
+			CASE WHEN array_length(con.confkey, 1) = 1 THEN fc.tgt_cols ELSE '(' || fc.tgt_cols || ')' END
 		) AS ref_line,
 		ns1.nspname AS schema_name,
 		cl1.relname AS table_name,
 		con.conname AS constraint_name
 	FROM pg_constraint AS con
+	JOIN fk_cols AS fc ON fc.con_oid = con.oid
 	JOIN pg_class AS cl1 ON cl1.oid = con.conrelid
 	JOIN pg_namespace AS ns1 ON ns1.oid = cl1.relnamespace
 	JOIN pg_class AS cl2 ON cl2.oid = con.confrelid
@@ -136,7 +173,7 @@ foreign_keys AS (
 )
 SELECT
 	string_agg(
-		format(E'Table "%I"."%I" {\n%s%s%s\n}',
+		format(E'Table %I.%I {\n%s%s%s\n}',
 			t.schema_name,
 			t.table_name,
 			c.columns_block,
