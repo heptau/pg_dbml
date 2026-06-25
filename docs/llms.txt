@@ -1,0 +1,54 @@
+# pg_dbml
+
+> PostgreSQL Schema to DBML Exporter — pure SQL, zero external dependencies.
+
+pg_dbml is a CLI tool that introspects a PostgreSQL database and exports its complete schema into DBML (Database Markup Language) format. It executes a single pure SQL query against PostgreSQL system catalogs, requiring only `psql` as a dependency. No ORMs, no drivers, no configuration files.
+
+## Links
+
+- [Homepage](https://pg_dbml.80.cz/)
+- [GitHub Repository](https://github.com/heptau/pg_dbml)
+- [Installation](https://pg_dbml.80.cz/#installation)
+- [Usage & Parameters](https://pg_dbml.80.cz/#usage)
+- [Changelog](https://github.com/heptau/pg_dbml/blob/main/CHANGELOG.md)
+
+## Key Facts
+
+- Language: Bash + SQL
+- Requires: psql (PostgreSQL client)
+- License: MIT
+- Install: `brew install heptau/tap/pg-dbml` or manual clone from GitHub
+- Output format: DBML (dbml.io)
+
+## What pg_dbml exports
+
+Across all user schemas (excluding pg_catalog and information_schema):
+
+- Tables with fully qualified `schema.table` names
+- Column names, data types (normalized: `character varying` → `varchar`, etc.)
+- Primary keys, unique constraints, NOT NULL constraints
+- Default values (casts stripped, clean output)
+- Indexes — including composite indexes and INCLUDE columns
+- Foreign key references with constraint names
+- Table and column comments from PostgreSQL metadata
+
+## Typical use cases
+
+- Providing PostgreSQL schema as context to AI assistants and LLMs
+- Generating documentation or ER diagrams via dbdiagram.io
+- Schema snapshots in CI/CD pipelines
+- Comparing schema structure across environments
+
+## Quick start
+
+```bash
+brew install heptau/tap/pg-dbml
+pg_dbml -d my_database
+# Output: my_database.dbml
+```
+
+Or with connection URI:
+
+```bash
+pg_dbml postgresql://user:pass@localhost:5432/my_database
+```

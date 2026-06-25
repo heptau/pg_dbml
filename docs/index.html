@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -13,7 +13,10 @@
 	<meta name="apple-mobile-web-app-title" content="pg_dbml" />
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
+	<meta property="og:title" content="pg_dbml – PostgreSQL Schema to DBML Exporter" />
+	<meta property="og:description" content="Export your entire PostgreSQL schema to DBML format with a single command. Pure SQL, zero external dependencies. Perfect for AI/LLM context and documentation." />
 	<meta property="og:image" content="https://pg_dbml.80.cz/og-image.png" />
+	<meta property="og:image:alt" content="pg_dbml – PostgreSQL Schema to DBML Exporter" />
 	<meta property="og:url" content="https://pg_dbml.80.cz/" />
 	<meta property="og:type" content="website" />
 
@@ -21,6 +24,7 @@
 	<meta name="twitter:title" content="pg_dbml – PostgreSQL Schema to DBML Exporter" />
 	<meta name="twitter:description" content="Export your PostgreSQL schema to DBML with a single command. Pure SQL, zero dependencies." />
 	<meta name="twitter:image" content="https://pg_dbml.80.cz/og-image.png" />
+	<meta name="twitter:image:alt" content="pg_dbml – PostgreSQL Schema to DBML Exporter" />
 
 	<link rel="canonical" href="https://pg_dbml.80.cz/" />
 
@@ -29,10 +33,13 @@
 			"@context": "https://schema.org",
 			"@type": "SoftwareApplication",
 			"name": "pg_dbml",
+			"url": "https://pg_dbml.80.cz/",
 			"operatingSystem": "Linux, macOS",
 			"applicationCategory": "DeveloperApplication",
 			"description": "PostgreSQL Schema to DBML Exporter. Export your PostgreSQL schema to DBML with a single command. Pure SQL, zero dependencies.",
-			"softwareVersion": "1.0.0",
+			"keywords": "PostgreSQL, DBML, database schema, schema exporter, CLI, LLM context, database documentation",
+			"license": "https://opensource.org/licenses/MIT",
+			"codeRepository": "https://github.com/heptau/pg_dbml",
 			"offers": {
 				"@type": "Offer",
 				"price": "0",
@@ -44,10 +51,92 @@
 			}
 		}
 	</script>
+	<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "FAQPage",
+			"mainEntity": [
+				{
+					"@type": "Question",
+					"name": "What is pg_dbml?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "pg_dbml is a CLI tool that introspects a PostgreSQL database and exports its complete schema—tables, columns, constraints, indexes, foreign keys, and comments—into DBML (Database Markup Language) format using a single pure SQL query."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "How do I install pg_dbml?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "The easiest way is via Homebrew: brew install heptau/tap/pg-dbml. Alternatively, clone the repository from GitHub (git clone https://github.com/heptau/pg_dbml.git), run chmod +x pg_dbml, and optionally create a symlink to /usr/local/bin."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Does pg_dbml require any external dependencies?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "No. pg_dbml only requires psql (the standard PostgreSQL client) in your PATH. The introspection logic is a single pure SQL query with no external libraries, ORMs, or configuration files."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "What PostgreSQL objects does pg_dbml export?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "pg_dbml exports all user tables across all schemas, including: column names and normalized data types, primary keys, unique constraints, NOT NULL constraints, default values, indexes (including composite and INCLUDE columns), foreign key references, and table and column comments."
+					}
+				},
+				{
+					"@type": "Question",
+					"name": "Why use DBML for AI and LLMs?",
+					"acceptedAnswer": {
+						"@type": "Answer",
+						"text": "DBML is a compact, structured, human-readable format that LLMs can parse efficiently. Providing your database schema as DBML gives AI assistants instant understanding of table relationships, constraints, and data types without requiring live database access or complex SQL introspection."
+					}
+				}
+			]
+		}
+	</script>
+	<script type="application/ld+json">
+		{
+			"@context": "https://schema.org",
+			"@type": "HowTo",
+			"name": "How to export a PostgreSQL schema to DBML",
+			"description": "Export your entire PostgreSQL database schema to DBML format using pg_dbml.",
+			"step": [
+				{
+					"@type": "HowToStep",
+					"position": "1",
+					"name": "Install pg_dbml",
+					"text": "Install via Homebrew: brew install heptau/tap/pg-dbml",
+					"url": "https://pg_dbml.80.cz/#installation"
+				},
+				{
+					"@type": "HowToStep",
+					"position": "2",
+					"name": "Run the exporter",
+					"text": "Run pg_dbml with your database name: pg_dbml -d your_database",
+					"url": "https://pg_dbml.80.cz/#usage"
+				},
+				{
+					"@type": "HowToStep",
+					"position": "3",
+					"name": "Use the output",
+					"text": "The file your_database.dbml is created in the current directory, ready for use with dbdiagram.io, AI assistants, or documentation tools.",
+					"url": "https://pg_dbml.80.cz/#usage"
+				}
+			]
+		}
+	</script>
+
+	<meta name="theme-color" content="#00e5ff" />
 
 	<link rel="icon" href="favicon.svg" type="image/svg+xml" />
 	<link rel="apple-touch-icon" href="apple-icon.png" sizes="180x180" type="image/png" />
 	<link rel="manifest" href="manifest.json" />
+	<link rel="author" href="humans.txt" />
 	<link rel="stylesheet" href="style.css" />
 
 	<script>

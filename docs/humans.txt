@@ -1,0 +1,16 @@
+/* TEAM */
+Author: Zbyněk Vanžura
+Site: https://www.80.cz
+Location: Czech Republic
+
+/* THANKS */
+Contributor: Aleš Želený
+GitHub: https://github.com/aleszeleny
+
+Contributors: https://github.com/heptau/pg_dbml/graphs/contributors
+
+/* SITE */
+Last update: 2026-06-25
+Language: Czech, English, German, Spanish, French, Italian, Portuguese
+Standards: HTML5, CSS3
+Components: Vanilla JS, Schema.org JSON-LD

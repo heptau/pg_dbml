@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CLI Tool](https://img.shields.io/badge/Interface-CLI%20Wrapper-green.svg)](pg_dbml)
+[![Test](https://github.com/heptau/pg_dbml/actions/workflows/test.yml/badge.svg)](https://github.com/heptau/pg_dbml/actions/workflows/test.yml)
 
 A powerful command-line utility built around PostgreSQL introspection. `pg_dbml` extracts the complete database schema and exports it directly into the standardized DBML (Database Markup Language) format.
 
@@ -113,7 +114,7 @@ make test    # Run tests
 make build   # Build release artifacts (archive + Homebrew formula)
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## ⚖️ License
 

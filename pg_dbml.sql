@@ -69,7 +69,16 @@ columns_dbml AS (
 							CASE WHEN is_unique THEN 'unique' END,
 							CASE WHEN NOT is_nullable THEN 'not null' END,
 							CASE WHEN column_default IS NOT NULL
-								THEN format('default: %s', replace(regexp_replace(column_default, '::"?[a-z][a-z0-9_ ]*"?(\([^)]*\))?(\[\])*$', ''), '"', '""'))
+								THEN format('default: %s', replace(
+									regexp_replace(
+										regexp_replace(
+											regexp_replace(column_default, '"([a-z][a-z0-9_]*)"(\()', '\1\2', 'g'),
+											'::"?[a-z][a-z0-9_ ]*"?(\([^)]*\))?(\s+[a-z]+)*(\[\])*', '', 'g'
+										),
+										'^\(([^()]+)\)$', '\1'
+									),
+									'"', '""'
+								))
 							END,
 							CASE WHEN column_comment IS NOT NULL
 								THEN format('note: %s',
