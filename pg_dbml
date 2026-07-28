@@ -118,5 +118,7 @@ else
 		if [[ "${QUIET}" == 0 ]]; then
 			echo "✅ DBML generated → $OUTPUT"
 		fi
+	else
+		exit "${?}"
 	fi
 fi

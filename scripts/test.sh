@@ -46,12 +46,12 @@ else
 	test_fail "  --help exits 0"
 fi
 
-# No args exits with 1
-./pg_dbml > /dev/null 2>&1
+# Failed export exits with non zero
+./pg_dbml -d template0 > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
-	test_ok "  No args exits non-zero"
+	test_ok "  Failed export exits with non-zero"
 else
-	test_fail "  No args exits non-zero"
+	test_fail "  Failed export exits with non-zero"
 fi
 
 # --version outputs exact MAJOR.MINOR.PATCH (no trailing text)
