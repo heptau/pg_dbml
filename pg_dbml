@@ -3,7 +3,9 @@
 # pg_dbml - PostgreSQL → DBML exporter (pure SQL, sorted by schema.table)
 # =============================================================================
 
-VERSION="1.1.1"
+set -euo pipefail
+
+VERSION="1.1.2"
 QUIET=0
 DRY_RUN=0
 
@@ -12,7 +14,7 @@ if ! command -v psql &> /dev/null; then
 	exit 1
 fi
 
-if [[ "$1" == "--version" || "$1" == "-v" ]]; then
+if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
 	echo "$VERSION"
 	exit 0
 fi
@@ -41,48 +43,44 @@ EOF
 }
 
 # Default connection and config values
-HOST="localhost"
-PORT="5432"
-USER="postgres"
 DBNAME=""
 OUTPUT=""
 CONNSTR=""
 QUIET=0
 DRY_RUN=0
+PSQL_ARGS=(
+  -v ON_ERROR_STOP=on
+  --no-psqlrc
+  --tuples-only
+  --no-align
+)
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
-		-h|--host)      HOST="$2"; shift 2 ;;
-		-p|--port)      PORT="$2"; shift 2 ;;
-		-U|--user)     USER="$2"; shift 2 ;;
-		-d|--dbname)    DBNAME="$2"; shift 2 ;;
-		-o|--output)   OUTPUT="$2"; shift 2 ;;
-		-q|--quiet)    QUIET=1; shift ;;
-		--dry-run)     DRY_RUN=1; shift ;;
-		-v|--version)  echo "$VERSION"; exit 0 ;;
-		--help)        usage; exit 0 ;;
-		postgresql://*)  CONNSTR="$1"; shift ;;
-		-*)           DBNAME="${DBNAME:-$1}"; shift ;;
+		-h|--host)       PSQL_ARGS+=(-h "${2}"); shift 2 ;;
+		-p|--port)       PSQL_ARGS+=(-p "${2}"); shift 2 ;;
+		-U|--user)       PSQL_ARGS+=(-U "${2}"); shift 2 ;;
+		-d|--dbname)     PSQL_ARGS+=(-d "${2}"); DBNAME="${2}"; shift 2 ;;
+		-o|--output)     OUTPUT="${2}"; shift 2 ;;
+		-q|--quiet)      QUIET=1; shift ;;
+		--dry-run)       DRY_RUN=1; shift ;;
+		-v|--version)    echo "$VERSION"; exit 0 ;;
+		--help)          usage; exit 0 ;;
+		postgresql://*)  PSQL_ARGS+=("${1}"); CONNSTR="${1}";  shift ;;
+		*)               PSQL_ARGS+=("-d ${1}"); shift ;;
 	esac
 done
 
-if [[ -z "$CONNSTR" && -z "$DBNAME" ]]; then
-	usage
-	exit 1
-fi
+if [[ -n "${CONNSTR:-}" ]]; then
 
-if [[ -n "$CONNSTR" && -z "$DBNAME" ]]; then
-	DBNAME=$(echo "$CONNSTR" | sed -E 's|^postgresql://[^/]+/([^/?]+).*$|\1|')
-fi
-
-if [[ -z "$DBNAME" ]]; then
-	echo "Error: Database name missing." >&2
-	usage
-	exit 1
+	#  CONNSTR="postgresql://user:pass@host:5432/mydb?sslmode=require"
+	DBNAME="$(printf '%s\n' "$CONNSTR" | sed -E 's|^postgresql://([^/@]+(:[^/@]*)?@)?([^/:?]+)?(:[0-9]+)?/?([^?]*)?.*$|\5|')"
+	DBNAME="${DBNAME:-$USER}"
 fi
 
 if [[ -z "$OUTPUT" ]]; then
-	OUTPUT="${DBNAME}.dbml"
+	# default DB name is same as username
+	OUTPUT="${DBNAME:-$USER}.dbml"
 fi
 
 # ─────────────────────────────────────────────────────────────
@@ -92,7 +90,7 @@ fi
 # 1. PG_DBML_SQL_PATH (Set by Homebrew wrapper during installation)
 # 2. Local fallback paths (For local development/execution)
 
-if [[ -n "${PG_DBML_SQL_PATH}" ]]; then
+if [[ -n "${PG_DBML_SQL_PATH:-}" ]]; then
 	SQL_FILE="${PG_DBML_SQL_PATH}"
 else
 	if [[ -f "pg_dbml.sql" ]]; then
@@ -111,21 +109,14 @@ fi
 SQL=$(cat "$SQL_FILE")
 
 if [[ $DRY_RUN == 1 ]]; then
-	if [[ -n "$CONNSTR" ]]; then
-		psql "$CONNSTR" --no-psqlrc --tuples-only --no-align -c "$SQL"
-	else
-		psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" \
-			 --no-psqlrc --tuples-only --no-align -c "$SQL"
-	fi
-else
-	if [[ -n "$CONNSTR" ]]; then
-		psql "$CONNSTR" --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
-	else
-		psql -h "$HOST" -p "$PORT" -U "$USER" -d "$DBNAME" \
-			 --no-psqlrc --tuples-only --no-align --quiet -c "$SQL" > "$OUTPUT"
-	fi
 
-	if [[ $QUIET == 0 ]]; then
-		echo "✅ DBML generated → $OUTPUT"
+	psql "${PSQL_ARGS[@]}" -c "$SQL"
+
+else
+	if psql "${PSQL_ARGS[@]}" --quiet -c "$SQL" > "$OUTPUT"; then
+
+		if [[ "${QUIET}" == 0 ]]; then
+			echo "✅ DBML generated → $OUTPUT"
+		fi
 	fi
 fi
