@@ -54,6 +54,38 @@ else
 	test_fail "  Failed export exits with non-zero"
 fi
 
+# Positional DBNAME reaches psql as a separate -d argument, not a single "-d name" string.
+# Uses a psql stub on PATH so no database is needed.
+REPO_ROOT="$PWD"
+STUB_DIR=$(mktemp -d)
+cat > "$STUB_DIR/psql" << 'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$PSQL_ARGV_LOG"
+STUB
+chmod +x "$STUB_DIR/psql"
+
+PSQL_ARGV_LOG="$STUB_DIR/argv" PATH="$STUB_DIR:$PATH" \
+	./pg_dbml positional_db --dry-run > /dev/null 2>&1
+if grep -qxF -- '-d' "$STUB_DIR/argv" 2>/dev/null && grep -qxF 'positional_db' "$STUB_DIR/argv" 2>/dev/null; then
+	test_ok "  Positional DBNAME passed to psql as separate -d argument"
+else
+	test_fail "  Positional DBNAME passed to psql as separate -d argument"
+fi
+
+# Positional DBNAME also determines the default output file name
+(
+	cd "$STUB_DIR" || exit 1
+	PSQL_ARGV_LOG="$STUB_DIR/argv" PATH="$STUB_DIR:$PATH" PG_DBML_SQL_PATH="$REPO_ROOT/pg_dbml.sql" \
+		"$REPO_ROOT/pg_dbml" positional_db -q > /dev/null 2>&1
+)
+if [[ -f "$STUB_DIR/positional_db.dbml" ]]; then
+	test_ok "  Positional DBNAME sets default output file name"
+else
+	test_fail "  Positional DBNAME sets default output file name"
+fi
+
+rm -rf "$STUB_DIR"
+
 # --version outputs exact MAJOR.MINOR.PATCH (no trailing text)
 if ./pg_dbml --version 2>/dev/null | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
 	test_ok "  --version outputs semver"

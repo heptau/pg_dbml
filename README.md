@@ -66,6 +66,12 @@ If you want to export the schema from a database named `my_production_db` runnin
 pg_dbml -d my_production_db -o schema.dbml
 ```
 
+The database name can also be given as a plain positional argument:
+
+```bash
+pg_dbml my_production_db
+```
+
 **Using a Connection String:**
 You can also pass a standard PostgreSQL connection URI:
 
@@ -73,26 +79,33 @@ You can also pass a standard PostgreSQL connection URI:
 pg_dbml postgresql://postgres:password@localhost:5432/my_production_db
 ```
 
+**Connection defaults:**
+Connection parameters are forwarded to `psql` only when you actually provide them, so `psql`'s own defaults and the standard `libpq` environment variables apply to everything you omit. If your environment is already set up for `psql`, running `pg_dbml` with no arguments at all works:
+
+```bash
+export PGHOST=db.internal PGUSER=reporting PGDATABASE=analytics
+pg_dbml
+```
+
 **Arguments Reference:**
 
 | Argument | Short | Description | Required | Default |
 | :--- | :---: | :--- | :---: | :--- |
-| `--dbname` | `-d` | Name of the target database. | Yes* | N/A |
-| `--host` | `-h` | PostgreSQL host address. | No | `localhost` |
-| `--port` | `-p` | PostgreSQL port. | No | `5432` |
-| `--user` | `-U` | Database user name. | No | `postgres` |
+| `--dbname` | `-d` | Name of the target database (also accepted as a positional argument). | No | `PGDATABASE`, else user name |
+| `--host` | `-h` | PostgreSQL host address. | No | `PGHOST`, else local socket |
+| `--port` | `-p` | PostgreSQL port. | No | `PGPORT`, else `5432` |
+| `--user` | `-U` | Database user name. | No | `PGUSER`, else OS user name |
 | `--output` | `-o` | Path where the `.dbml` file will be saved. | No | `[DBNAME].dbml` |
 | `--quiet` | `-q` | Suppress success message. | No | |
 | `--dry-run` | | Preview output without writing file. | No | |
 | `--version`| `-v` | Show script version. | No | |
 | `--help` | | Show help message. | No | |
 
-*\* Required unless provided via a connection string.*
-
 **Examples:**
 
 ```bash
-pg_dbml -d mydb
+pg_dbml
+pg_dbml mydb
 pg_dbml -d mydb -q
 pg_dbml postgresql://postgres:password@localhost:5432/mydb --dry-run
 ```

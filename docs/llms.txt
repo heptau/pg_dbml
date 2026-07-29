@@ -47,8 +47,18 @@ pg_dbml -d my_database
 # Output: my_database.dbml
 ```
 
+The database name may also be given as a positional argument:
+
+```bash
+pg_dbml my_database
+```
+
 Or with connection URI:
 
 ```bash
 pg_dbml postgresql://user:pass@localhost:5432/my_database
 ```
+
+## Connection defaults
+
+Connection parameters (`-h`/`--host`, `-p`/`--port`, `-U`/`--user`, `-d`/`--dbname`) are forwarded to `psql` only when provided. Anything omitted falls back to `psql`'s own defaults and the standard libpq environment variables (`PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`), so `pg_dbml` with no arguments works in an environment already configured for `psql`.

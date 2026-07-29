@@ -153,7 +153,7 @@
 			<div class="logo">pg_dbml</div>
 			<div class="nav-links">
 				<div class="lang-dropdown">
-					<button class="lang-trigger" aria-label="Změnit jazyk" aria-haspopup="true" aria-expanded="false">
+					<button class="lang-trigger" aria-label="Change language" aria-haspopup="true" aria-expanded="false">
 						<svg class="icon-sw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<circle cx="12" cy="12" r="10"></circle>
 							<line x1="2" y1="12" x2="22" y2="12"></line>
@@ -196,7 +196,7 @@
 					</div>
 				</div>
 				<div class="theme-dropdown">
-					<button class="theme-trigger" aria-label="Změnit motiv" aria-haspopup="true" aria-expanded="false">
+					<button class="theme-trigger" aria-label="Change theme" aria-haspopup="true" aria-expanded="false">
 						<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor">
 							<path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18V4c4.42 0 8 3.58 8 8s-3.58 8-8 8z"></path>
 						</svg>
@@ -208,11 +208,11 @@
 						</button>
 						<button class="theme-option" data-theme-value="light">
 							<span class="theme-option-icon">☀️</span>
-							<span data-t="theme.light">Světlý</span>
+							<span data-t="theme.light">Light</span>
 						</button>
 						<button class="theme-option" data-theme-value="dark">
 							<span class="theme-option-icon">🌙</span>
-							<span data-t="theme.dark">Tmavý</span>
+							<span data-t="theme.dark">Dark</span>
 						</button>
 					</div>
 				</div>
@@ -226,13 +226,11 @@
 					<span class="badge" data-t="hero.badge">PostgreSQL → DBML</span>
 				</div>
 				<h1 class="animate-fade-up delay-2"><span class="text-glow font-mono">pg_dbml</span></h1>
-				<p class="animate-fade-up delay-3 hero-p" data-t="hero.subtitle">Extraktor schématu databáze</p>
-				<p class="animate-fade-up delay-4 hero-desc" data-t="hero.description">
-					Exportujte celé schéma PostgreSQL do formátu DBML jediným příkazem. Čisté SQL, žádné externí závislosti.
-				</p>
+				<p class="animate-fade-up delay-3 hero-p" data-t="hero.subtitle">Database Schema Extractor</p>
+				<p class="animate-fade-up delay-4 hero-desc" data-t="hero.description">Export your entire PostgreSQL schema to DBML format with a single command. Pure SQL, zero external dependencies.</p>
 				<div class="animate-fade-up delay-5 cta-group">
-					<a href="https://github.com/heptau/pg_dbml" target="_blank" rel="noopener noreferrer" class="btn btn-primary" data-t="hero.github_btn">Zobrazit na GitHubu</a>
-					<a href="#installation" class="btn btn-secondary" data-t="hero.quickstart">Rychlý start ↓</a>
+					<a href="https://github.com/heptau/pg_dbml" target="_blank" rel="noopener noreferrer" class="btn btn-primary" data-t="hero.github_btn">View on GitHub</a>
+					<a href="#installation" class="btn btn-secondary" data-t="hero.quickstart">Quick Start ↓</a>
 				</div>
 
 				<div class="animate-fade-up delay-5 code-block">
@@ -243,76 +241,70 @@
 						<span>terminal</span>
 					</div>
 					<div class="code-content font-mono">
-						<p style="color:var(--pg-muted)" data-t="terminal.comment"># Export schématu do DBML</p>
+						<p style="color:var(--pg-muted)" data-t="terminal.comment"># Export schema to DBML</p>
 						<p><span style="color:var(--pg-green)">$</span> ./pg_dbml \</p>
-						<p style="padding-left:1.5rem">--db-host <span style="color:var(--pg-cyan)">localhost</span> \</p>
-						<p style="padding-left:1.5rem">--db-name <span style="color:var(--pg-cyan)">my_database</span> \</p>
+						<p style="padding-left:1.5rem">--host <span style="color:var(--pg-cyan)">localhost</span> \</p>
+						<p style="padding-left:1.5rem">--dbname <span style="color:var(--pg-cyan)">my_database</span> \</p>
 						<p style="padding-left:1.5rem">--output <span style="color:var(--pg-purple)">schema.dbml</span></p>
-						<p class="mt-2" style="color:var(--pg-green)" data-t="terminal.success">✓ Schéma úspěšně exportováno → schema.dbml<span class="cursor-blink">▌</span></p>
+						<p class="mt-2" style="color:var(--pg-green)" data-t="terminal.success">✓ Schema successfully exported → schema.dbml<span class="cursor-blink">▌</span></p>
 					</div>
 				</div>
 			</section>
 
 			<div class="sections">
 				<section class="card card-cyan animate-reveal">
-					<h2 data-t="about.title">Co je pg_dbml?</h2>
-					<p data-t="about.content">
-						pg_dbml je výkonný nástroj příkazového řádku navržený k introspekci schématu databáze PostgreSQL a exportu jeho kompletní struktury do formátu Database Markup Language (DBML). Toho dosahuje prováděním komplexních čistých SQL dotazů na systémové katalogy PostgreSQL, čímž zajišťuje <strong style="color:var(--pg-cyan)" data-t="about.fidelity">100% věrnost schématu</strong> bez nutnosti externích ovladačů nebo ORM.
-					</p>
+					<h2 data-t="about.title">What is pg_dbml?</h2>
+					<p data-t="about.content">pg_dbml is a powerful command-line tool designed to introspect your PostgreSQL database schema and export its complete structure to Database Markup Language (DBML) format. It achieves this by executing complex, pure SQL queries against PostgreSQL system catalogs, ensuring <strong style="color:var(--pg-cyan)" data-t="about.fidelity">100% schema fidelity</strong> without needing external drivers or ORMs.</p>
 				</section>
 
 				<section class="card card-purple animate-reveal">
 					<div class="card-content-glow"></div>
 					<div style="position:relative; z-index:1;">
-						<h2 data-t="ai.title">💡 Proč používat DBML pro AI a LLM?</h2>
-						<p data-t="ai.content">
-							Databázová schémata jsou složitá na zpracování. Přímé dotazování živé databáze může být pomalé, drahé a vyžaduje hlubokou znalost SQL. DBML tento problém řeší tím, že poskytuje čitelný, deklarativní a vysoce strukturovaný plán vašich dat.
-						</p>
+						<h2 data-t="ai.title">💡 Why use DBML for AI & LLMs?</h2>
+						<p data-t="ai.content">Database schemas are often complex to parse. Querying a live database for schema knowledge is slow, resource-intensive, and requires intricate SQL expertise. DBML solves this by providing a human-readable, declarative, and highly structured blueprint of your data.</p>
 						<div class="purple-callout">
-							<div class="title" data-t="ai.benefit_title">✦ Přínos pro AI</div>
-							<p data-t="ai.benefit_content">
-								Konzumací souboru DBML mohou velké jazykové modely (LLM) rychle a nákladově efektivně porozumět vašemu datovému modelu. Okamžitě pochopí vztahy, struktury tabulek a omezení, aniž by musely spouštět časově náročné dotazy na produkční databázi.
-							</p>
+							<div class="title" data-t="ai.benefit_title">✦ Benefit for AI</div>
+							<p data-t="ai.benefit_content">By consuming a DBML file, large language models (LLMs) can rapidly and cost-effectively familiarize themselves with your data model. They can instantly understand relationships, table structures, and constraints without running time-consuming queries against the live database.</p>
 						</div>
 					</div>
 				</section>
 
 				<section class="card animate-reveal">
-					<h2 data-t="features.title">Klíčové funkce</h2>
+					<h2 data-t="features.title">Key Features</h2>
 					<div class="feature-grid">
 						<div class="feature-item">
 							<span class="feature-icon" style="color:var(--pg-cyan)">⬡</span>
 							<div class="feature-content">
-								<h3 data-t="features.sql_title">Čistá SQL introspekce</h3>
-								<p data-t="features.sql_desc">Logika je zcela obsažena v PostgreSQL dotazech — žádné externí závislosti.</p>
+								<h3 data-t="features.sql_title">Pure SQL Introspection</h3>
+								<p data-t="features.sql_desc">The logic is entirely contained within PostgreSQL queries — no external dependencies.</p>
 							</div>
 						</div>
 						<div class="feature-item">
 							<span class="feature-icon" style="color:var(--pg-purple)">⛓</span>
 							<div class="feature-content">
-								<h3 data-t="features.constraints_title">Mapování omezení</h3>
-								<p data-t="features.constraints_desc">Detekuje primární klíče, unikátní omezení a vztahy cizích klíčů.</p>
+								<h3 data-t="features.constraints_title">Constraint Mapping</h3>
+								<p data-t="features.constraints_desc">Automatically detects and maps Primary Keys, Unique constraints, and Foreign Key relationships.</p>
 							</div>
 						</div>
 						<div class="feature-item">
 							<span class="feature-icon" style="color:var(--pg-green)">◈</span>
 							<div class="feature-content">
-								<h3 data-t="features.indexes_title">Přehled indexů</h3>
-								<p data-t="features.indexes_desc">Dokumentuje vlastní indexy a sloupce INCLUDE pro úplné pokrytí schématu.</p>
+								<h3 data-t="features.indexes_title">Index Overview</h3>
+								<p data-t="features.indexes_desc">Documents custom indexes and INCLUDE columns for full schema coverage.</p>
 							</div>
 						</div>
 						<div class="feature-item">
 							<span class="feature-icon" style="color:var(--pg-cyan)">◉</span>
 							<div class="feature-content">
-								<h3 data-t="features.metadata_title">Bohatost metadat</h3>
-								<p data-t="features.metadata_desc">Zahrnuje komentáře tabulek a sloupců, pokud jsou k dispozici.</p>
+								<h3 data-t="features.metadata_title">Metadata Richness</h3>
+								<p data-t="features.metadata_desc">Includes table and column comments retrieved directly from PostgreSQL metadata.</p>
 							</div>
 						</div>
 						<div class="feature-item">
 							<span class="feature-icon" style="color:var(--pg-purple)">▶</span>
 							<div class="feature-content">
-								<h3 data-t="features.cli_title">Řízeno CLI</h3>
-								<p data-t="features.cli_desc">Jednoduché, opakovatelné spouštění přes příkaz pg_dbml. Vhodné pro skripty a CI.</p>
+								<h3 data-t="features.cli_title">CLI Driven</h3>
+								<p data-t="features.cli_desc">Simple, repeatable execution via the pg_dbml command. Perfect for scripts and CI/CD.</p>
 							</div>
 						</div>
 					</div>
@@ -320,14 +312,14 @@
 
 
 				<section id="installation" class="card card-cyan animate-reveal">
-					<h2 data-t="install.title">Instalace</h2>
+					<h2 data-t="install.title">Installation</h2>
 					<div class="feature-grid">
 						<div class="feature-item" style="flex-direction: column; gap: 0.5rem;">
 							<div style="display: flex; align-items: center; gap: 0.75rem;">
 								<span class="feature-icon" style="color:var(--pg-cyan)">🍺</span>
-								<h3 style="margin:0" data-t="install.brew_title">Homebrew (doporučeno)</h3>
+								<h3 style="margin:0" data-t="install.brew_title">Homebrew (Recommended)</h3>
 							</div>
-							<p data-t="install.brew_desc">Nejjednodušší způsob instalace na macOS a Linux. Automaticky řeší závislosti.</p>
+							<p data-t="install.brew_desc">The easiest way to install on macOS and Linux. Automatically handles all dependencies.</p>
 							<div class="code-block" style="margin: 0.5rem 0 0; box-shadow: none;">
 								<div class="code-content font-mono" style="padding: 0.75rem;">
 									<p><span style="color:var(--pg-green)">$</span> brew install <span style="color:var(--pg-cyan)">heptau/tap/pg-dbml</span></p>
@@ -337,129 +329,139 @@
 						<div class="feature-item" style="flex-direction: column; gap: 0.5rem;">
 							<div style="display: flex; align-items: center; gap: 0.75rem;">
 								<span class="feature-icon" style="color:var(--pg-muted)">⚙</span>
-								<h3 style="margin:0" data-t="install.manual_title">Ruční instalace</h3>
+								<h3 style="margin:0" data-t="install.manual_title">Manual Installation</h3>
 							</div>
-							<p data-t="install.manual_desc">Pro systémy bez Homebrew nebo pokud chcete mít kód pod kontrolou.</p>
+							<p data-t="install.manual_desc">For systems without Homebrew or if you prefer manual control.</p>
 							<div class="step-list">
 								<div class="step-item">
 									<div class="step-number">1</div>
 									<div class="step-content">
-										<h4 data-t="install.step1">Klonování repozitáře</h4>
+										<h4 data-t="install.step1">Clone the repository</h4>
 										<code>git clone https://github.com/heptau/pg_dbml.git</code>
 									</div>
 								</div>
 								<div class="step-item">
 									<div class="step-number">2</div>
 									<div class="step-content">
-										<h4 data-t="install.step2">Povolení spuštění</h4>
+										<h4 data-t="install.step2">Make it executable</h4>
 										<code>chmod +x pg_dbml</code>
 									</div>
 								</div>
 								<div class="step-item">
 									<div class="step-number">3</div>
 									<div class="step-content">
-										<h4 data-t="install.step3">Symlink (volitelně)</h4>
-										<p style="font-size:0.75rem" data-t="install.step3_desc">Pro globální dostupnost:</p>
+										<h4 data-t="install.step3">Symlink (Optional)</h4>
+										<p style="font-size:0.75rem" data-t="install.step3_desc">For global availability:</p>
 										<code>ln -s $(pwd)/pg_dbml /usr/local/bin/pg_dbml</code>
 									</div>
 								</div>
 							</div>
-							<p style="margin-top:0.5rem; font-size:0.75rem; color:var(--pg-purple)" data-t="install.psql_note">
-								* Vyžaduje nainstalovaný <code>psql</code> v PATH.
-							</p>
+							<p style="margin-top:0.5rem; font-size:0.75rem; color:var(--pg-purple)" data-t="install.psql_note">* Requires <code>psql</code> installed and available in your PATH.</p>
 						</div>
 					</div>
 				</section>
 
 				<section id="usage" class="card card-green animate-reveal">
-					<h2 data-t="usage.title">Použití a parametry</h2>
-					<p data-t="usage.intro">Nástroj <code>pg_dbml</code> můžete spouštět buď s jednotlivými parametry, nebo pomocí standardního PostgreSQL Connection URI.</p>
+					<h2 data-t="usage.title">Usage & Parameters</h2>
+					<p data-t="usage.intro">You can run <code>pg_dbml</code> using individual parameters or a standard PostgreSQL Connection URI.</p>
 
-					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.basic_title">Základní spuštění</h3>
+					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.basic_title">Basic Execution</h3>
 					<div class="code-block" style="margin-top:0.75rem;">
 						<div class="terminal-header"><span>terminal</span></div>
 						<div class="code-content font-mono">
-							<p style="color:var(--pg-muted)" data-t="usage.basic_comment"># Export podle názvu databáze (host: localhost)</p>
+							<p style="color:var(--pg-muted)" data-t="usage.basic_comment"># Export by database name</p>
 							<p><span style="color:var(--pg-green)">$</span> pg_dbml <span style="color:var(--pg-cyan)">-d</span> my_database <span style="color:var(--pg-cyan)">-o</span> <span style="color:var(--pg-purple)">schema.dbml</span></p>
+							<p style="color:var(--pg-muted)" data-t="usage.positional_comment"># The database name can also be a plain positional argument</p>
+							<p><span style="color:var(--pg-green)">$</span> pg_dbml my_database</p>
 						</div>
 					</div>
 
-					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.uri_title">Použití Connection URI</h3>
+					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.defaults_title">Connection defaults</h3>
+					<p style="margin-top:0.5rem" data-t="usage.defaults_note">Connection parameters are forwarded to <code>psql</code> only when you actually provide them. Everything you omit falls back to <code>psql</code>'s own defaults and the standard environment variables (<code>PGHOST</code>, <code>PGPORT</code>, <code>PGUSER</code>, <code>PGDATABASE</code>). If your environment is already set up for <code>psql</code>, running it with no arguments at all works too.</p>
 					<div class="code-block" style="margin-top:0.75rem;">
 						<div class="terminal-header"><span>terminal</span></div>
 						<div class="code-content font-mono">
-							<p style="color:var(--pg-muted)" data-t="usage.uri_comment"># Export pomocí úplné adresy</p>
+							<p><span style="color:var(--pg-green)">$</span> <span style="color:var(--pg-cyan)">export</span> PGHOST=db.internal PGUSER=reporting PGDATABASE=analytics</p>
+							<p><span style="color:var(--pg-green)">$</span> pg_dbml</p>
+						</div>
+					</div>
+
+					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.uri_title">Using Connection URI</h3>
+					<div class="code-block" style="margin-top:0.75rem;">
+						<div class="terminal-header"><span>terminal</span></div>
+						<div class="code-content font-mono">
+							<p style="color:var(--pg-muted)" data-t="usage.uri_comment"># Export using full URI</p>
 							<p><span style="color:var(--pg-green)">$</span> pg_dbml postgresql://user:pass@localhost:5432/my_db</p>
 						</div>
 					</div>
 
-					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.dryrun_title">Náhled (dry-run)</h3>
+					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.dryrun_title">Preview (dry-run)</h3>
 					<div class="code-block" style="margin-top:0.75rem;">
 						<div class="terminal-header"><span>terminal</span></div>
 						<div class="code-content font-mono">
-							<p style="color:var(--pg-muted)" data-t="usage.dryrun_comment"># Náhled bez zápisu do souboru</p>
+							<p style="color:var(--pg-muted)" data-t="usage.dryrun_comment"># Preview output without writing file</p>
 							<p><span style="color:var(--pg-green)">$</span> pg_dbml -d mydb <span style="color:var(--pg-cyan)">--dry-run</span></p>
 						</div>
 					</div>
 
-					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.params_title">Přehled parametrů</h3>
+					<h3 style="margin-top: 2rem; font-size: 1rem; color: var(--pg-text);" data-t="usage.params_title">Parameters Overview</h3>
 					<div class="table-container">
 						<table>
 							<thead>
 								<tr>
-									<th data-t="table.param">Parametr</th>
-									<th data-t="table.short">Zkratka</th>
-									<th data-t="table.desc">Popis</th>
-									<th data-t="table.default">Výchozí</th>
+									<th data-t="table.param">Parameter</th>
+									<th data-t="table.short">Short</th>
+									<th data-t="table.desc">Description</th>
+									<th data-t="table.default">Default</th>
 								</tr>
 							</thead>
 							<tbody>
 								<tr>
 									<td><code>--dbname</code></td>
 									<td><code>-d</code></td>
-									<td data-t="params.dbname">Název cílové databáze.</td>
-									<td>-</td>
+									<td data-t="params.dbname">Name of the target database.</td>
+									<td><code>$PGDATABASE</code></td>
 								</tr>
 								<tr>
 									<td><code>--host</code></td>
 									<td><code>-h</code></td>
-									<td data-t="params.host">Adresa PostgreSQL serveru.</td>
-									<td><code>localhost</code></td>
+									<td data-t="params.host">PostgreSQL host address.</td>
+									<td><code>$PGHOST</code></td>
 								</tr>
 								<tr>
 									<td><code>--port</code></td>
 									<td><code>-p</code></td>
-									<td data-t="params.port">Port serveru.</td>
-									<td><code>5432</code></td>
+									<td data-t="params.port">PostgreSQL port.</td>
+									<td><code>$PGPORT</code></td>
 								</tr>
 								<tr>
 									<td><code>--user</code></td>
 									<td><code>-U</code></td>
-									<td data-t="params.user">Uživatelské jméno.</td>
-									<td><code>postgres</code></td>
+									<td data-t="params.user">Database user name.</td>
+									<td><code>$PGUSER</code></td>
 								</tr>
 								<tr>
 									<td><code>--output</code></td>
 									<td><code>-o</code></td>
-									<td data-t="params.output">Cesta k výslednému souboru.</td>
+									<td data-t="params.output">Path where the .dbml file will be saved.</td>
 									<td><code>[DBNAME].dbml</code></td>
 								</tr>
 								<tr>
 									<td><code>--quiet</code></td>
 									<td><code>-q</code></td>
-									<td data-t="params.quiet">Potlačí výpis úspěchu.</td>
+									<td data-t="params.quiet">Suppress success message.</td>
 									<td>-</td>
 								</tr>
 								<tr>
 									<td><code>--dry-run</code></td>
 									<td>-</td>
-									<td data-t="params.dryrun">Náhled bez zápisu.</td>
+									<td data-t="params.dryrun">Preview output without writing file.</td>
 									<td>-</td>
 								</tr>
 								<tr>
 									<td><code>--version</code></td>
 									<td><code>-v</code></td>
-									<td data-t="params.version">Zobrazí verzi skriptu.</td>
+									<td data-t="params.version">Show script version.</td>
 									<td>-</td>
 								</tr>
 							</tbody>
@@ -470,21 +472,19 @@
 				<section id="parameters" class="card card-purple animate-reveal">
 					<div class="card-content-glow"></div>
 					<div style="position:relative; z-index:1;">
-						<h2 data-t="arch.title">Technická architektura</h2>
-						<p data-t="arch.intro">
-							Projekt je rozdělen do dvou klíčových částí pro maximální udržovatelnost a skvělý vývojářský zážitek:
-						</p>
+						<h2 data-t="arch.title">Technical Architecture</h2>
+						<p data-t="arch.intro">The project is split into two parts to maximize developer experience and maintainability:</p>
 						<div class="feature-grid" style="margin-top: 1.5rem;">
 							<div class="feature-item">
 								<div class="feature-content">
-									<h3 data-t="arch.bash_title">pg_dbml (Bash orchestrátor)</h3>
-									<p data-t="arch.bash_desc">Zajišťuje parsování argumentů, bezpečné připojení k databázi přes <code>psql</code> a zápis streamu do souboru.</p>
+									<h3 data-t="arch.bash_title">pg_dbml (Bash orchestrator)</h3>
+									<p data-t="arch.bash_desc">Parses arguments, handles database connections via <code>psql</code>, and writes the output.</p>
 								</div>
 							</div>
 							<div class="feature-item">
 								<div class="feature-content">
-									<h3 data-t="arch.sql_title">pg_dbml.sql (Jádro)</h3>
-									<p data-t="arch.sql_desc">Komplexní, čistě SQL dotaz nad systémovými tabulkami PostgreSQL. Díky oddělení v samostatném souboru těžíte z plného zvýraznění syntaxe a standardního SQL ladění.</p>
+									<h3 data-t="arch.sql_title">pg_dbml.sql (Core Engine)</h3>
+									<p data-t="arch.sql_desc">A complex, pure SQL query. Keeping it separate allows for full syntax highlighting and standard SQL debugging.</p>
 								</div>
 							</div>
 						</div>
@@ -496,10 +496,10 @@
 
 		<footer>
 			<div class="footer-copy" style="white-space: nowrap;">
-				© 2026 Zbyněk Vanžura | <span data-t="footer.authors">Vytvořeno autory</span>&nbsp;<a href="https://www.pgarachne.com" target="_blank" rel="noopener noreferrer" class="footer-link" style="color:var(--pg-cyan); opacity:1; display:inline;">PgArachne</a>
+				© 2026 Zbyněk Vanžura | <span data-t="footer.authors">Created by the authors of</span>&nbsp;<a href="https://www.pgarachne.com" target="_blank" rel="noopener noreferrer" class="footer-link" style="color:var(--pg-cyan); opacity:1; display:inline;">PgArachne</a>
 			</div>
 			<div class="footer-links">
-				<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="footer-link" data-t="footer.license">Licence MIT</a>
+				<a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener noreferrer" class="footer-link" data-t="footer.license">MIT License</a>
 				<a href="https://github.com/heptau/pg_dbml" target="_blank" rel="noopener noreferrer" class="footer-link" style="display:flex; align-items:center; gap:0.4rem;">
 					<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" style="fill:currentColor;"><path d="M12 .5C5.73.5.5 5.74.5 12.02c0 5.1 3.29 9.42 7.86 10.95.57.1.78-.25.78-.55v-2.1c-3.2.7-3.87-1.37-3.87-1.37-.53-1.35-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.1-.75.4-1.27.72-1.56-2.55-.29-5.23-1.28-5.23-5.7.0-1.26.45-2.29 1.19-3.1-.12-.3-.52-1.5.11-3.13.0.0.97-.31 3.18 1.18a11 11 0 015.79.0c2.2-1.49 3.18-1.18 3.18-1.18.63 1.63.23 2.83.11 3.13.74.81 1.19 1.84 1.19 3.1.0 4.43-2.69 5.41-5.25 5.69.41.36.78 1.06.78 2.13v3.16c0 .3.2.65.79.54 4.56-1.53 7.85-5.85 7.85-10.94C23.5 5.74 18.27.5 12 .5z"/></svg>
 					GitHub

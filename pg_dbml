@@ -24,11 +24,14 @@ usage() {
 Usage: pg_dbml [OPTIONS] [DBNAME]
 	 or: pg_dbml postgresql://[user[:password]@][host][:port][/dbname]
 
+Connection parameters are forwarded to psql only when given, so psql's own
+defaults and environment variables apply to everything you omit.
+
 Parameters:
-	-h, --host HOST      Host (default: localhost)
-	-p, --port PORT      Port (default: 5432)
-	-U, --user USER      User (default: postgres)
-	-d, --dbname DBNAME  Database name
+	-h, --host HOST      Host (default: PGHOST, else local socket)
+	-p, --port PORT      Port (default: PGPORT, else 5432)
+	-U, --user USER      User (default: PGUSER, else OS user name)
+	-d, --dbname DBNAME  Database name (default: PGDATABASE, else user name)
 	-o, --output FILE    Output file (default: DBNAME.dbml)
 	-q, --quiet          Suppress success message
 	    --dry-run        Preview output without writing file
@@ -36,9 +39,11 @@ Parameters:
 	--help               This help
 
 Examples:
-	pg_dbml -d mydb
+	pg_dbml                       # use psql defaults / environment
+	pg_dbml mydb
 	pg_dbml -d mydb -q
 	pg_dbml -d mydb --dry-run
+	pg_dbml postgresql://user@localhost:5432/mydb
 EOF
 }
 
@@ -67,7 +72,7 @@ while [[ $# -gt 0 ]]; do
 		-v|--version)    echo "$VERSION"; exit 0 ;;
 		--help)          usage; exit 0 ;;
 		postgresql://*)  PSQL_ARGS+=("${1}"); CONNSTR="${1}";  shift ;;
-		*)               PSQL_ARGS+=("-d ${1}"); shift ;;
+		*)               PSQL_ARGS+=(-d "${1}"); DBNAME="${1}"; shift ;;
 	esac
 done
 
