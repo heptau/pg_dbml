@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-08-04
+
+### Added
+- Tests asserting that column types are mapped to DBML short names, that expression defaults are backticked and that notes escape apostrophes with a backslash. When `dbml2sql` is on `PATH`, the generated file is additionally validated against the reference DBML parser (skipped when it is not installed)
+
+### Fixed
+- Date/time types with a precision modifier kept their full SQL spelling — `timestamp(0) without time zone` instead of `timestamp(0)`, `timestamp(3) with time zone` instead of `timestamptz(3)`, and the same for `time(p)` / `timetz(p)`. The type-name mapping matched the unmodified spellings only, so any modifier broke it and the long name was emitted as a quoted type. All four are now mapped with the modifier preserved
+- Type-name mapping is now anchored to the start of the type name, so a type whose name merely contains a mapped word is left alone (`information_schema.character_data` was rewritten to `information_schema.char_data`)
+- Defaults that are SQL expressions are now emitted as DBML backtick expressions (``default: `now()` ``). DBML allows a bare default only for a number, `true`/`false`/`null` or a string literal, so every function-call default (`nextval(...)`, `CURRENT_TIMESTAMP`, `timezone('UTC', now())`, …) made the whole file unparseable — a real schema produced dozens of `'default' must be an enum value, a string literal, number literal, function expression, true, false or null` errors. Literals are still emitted bare
+- Notes now escape apostrophes DBML-style with a backslash (`client\'s`) instead of doubling them SQL-style, which was a parse error, and escape literal backslashes in comment text, which were previously swallowed together with the character after them
+- Defaults no longer have their double quotes doubled, which corrupted values that legitimately contain one (a `jsonb` default `'["string", "numeric"]'` came out as `'[""string"", ""numeric""]'`)
+
 ## [1.1.2] - 2026-07-30
 
 ### Changed
@@ -84,6 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DBML output covering tables, columns, data types, constraints, indexes, foreign keys, and comments
 - Homebrew distribution via tap
 
+[1.1.3]: https://github.com/heptau/pg_dbml/compare/v1.1.2...v1.1.3
+[1.1.2]: https://github.com/heptau/pg_dbml/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/heptau/pg_dbml/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/heptau/pg_dbml/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/heptau/pg_dbml/compare/v1.0.1...v1.0.2

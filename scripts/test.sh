@@ -179,6 +179,48 @@ else
 		test_fail "  Output starts with Table (no leading noise) — got: $first_line"
 	fi
 
+	# Column types use DBML short names — no SQL spelling leaks through, not even with
+	# a type modifier ("timestamp(0) without time zone" must come out as timestamp(0))
+	leaked=$(grep -nE '^  [^ ]+ "[^"]*(with|without) time zone[^"]*"' "$TMP_OUT" | head -1)
+	if [[ -z "$leaked" ]]; then
+		test_ok "  Column types mapped to DBML short names"
+	else
+		test_fail "  Column types mapped to DBML short names — got: $leaked"
+	fi
+
+	# Only a number, true/false/null or a string literal may be a bare default —
+	# every expression default has to be wrapped in backticks
+	bare=$(grep -oE '\[default: [^],]+|, default: [^],]+' "$TMP_OUT" \
+		| sed -E 's/^(\[|, )default: //' \
+		| grep -vE "^(\`|'|-?[0-9]|true$|false$|null$)" | head -1)
+	if [[ -z "$bare" ]]; then
+		test_ok "  Expression defaults wrapped in backticks"
+	else
+		test_fail "  Expression defaults wrapped in backticks — got: $bare"
+	fi
+
+	# Notes escape apostrophes DBML-style (\') — the SQL-style doubled '' is a parse
+	# error. Multi-line notes open with ''' and are matched out first.
+	doubled=$(grep -vE "note: '''" "$TMP_OUT" | grep -nE "note: '([^']|\\\\')*''" | head -1)
+	if [[ -z "$doubled" ]]; then
+		test_ok "  Notes escape apostrophes with a backslash"
+	else
+		test_fail "  Notes escape apostrophes with a backslash — got: $doubled"
+	fi
+
+	# Full validation against the reference DBML parser, when it is installed.
+	# dbml2sql reports parse errors on stdout and still exits 0, so grep for them.
+	if command -v dbml2sql > /dev/null 2>&1; then
+		parse_out=$(cd "$(dirname "$TMP_OUT")" && dbml2sql "$TMP_OUT" --postgres 2>&1)
+		if ! grep -q 'ERROR' <<< "$parse_out"; then
+			test_ok "  Output parses with dbml2sql"
+		else
+			test_fail "  Output parses with dbml2sql — $(grep -m1 -E '\([0-9]+,[0-9]+\)' <<< "$parse_out" | sed 's/^ *//')"
+		fi
+	else
+		test_skip "DBML parser validation (dbml2sql not installed)"
+	fi
+
 	rm -f "$TMP_OUT"
 
 	# Quiet flag suppresses stdout

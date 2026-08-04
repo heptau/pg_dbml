@@ -28,22 +28,42 @@ columns AS (
 		t.table_oid,
 		a.attname AS column_name,
 		a.attnum AS ordinal_position,
-		replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
+		-- Anchored patterns so a type modifier — timestamp(0) without time zone — is kept
+		-- while the SQL spelling is shortened, and so type names that merely contain a
+		-- mapped word (information_schema.character_data) are left alone.
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
+		regexp_replace(
 			format_type(a.atttypid, a.atttypmod),
-			'character varying', 'varchar'),
-			'bit varying', 'varbit'),
-			'timestamp without time zone', 'timestamp'),
-			'timestamp with time zone', 'timestamptz'),
-			'time without time zone', 'time'),
-			'time with time zone', 'timetz'),
-			'double precision', 'float8'),
-			'boolean', 'bool'),
-			'integer', 'int'),
-			'character(', 'char('),
-			'character', 'char')
+			'^timestamp(\(\d+\))? without time zone', 'timestamp\1'),
+			'^timestamp(\(\d+\))? with time zone',    'timestamptz\1'),
+			'^time(\(\d+\))? without time zone',      'time\1'),
+			'^time(\(\d+\))? with time zone',         'timetz\1'),
+			'^character varying',                     'varchar'),
+			'^character($|\(|\[)',                    'char\1'),
+			'^bit varying',                           'varbit'),
+			'^double precision',                      'float8'),
+			'^boolean($|\[)',                         'bool\1'),
+			'^integer($|\[)',                         'int\1')
 		AS data_type,
 		NOT a.attnotnull AS is_nullable,
-		pg_get_expr(d.adbin, d.adrelid) AS column_default,
+		-- pg_get_expr() renders the stored expression with Postgres noise: quoted
+		-- function names, ::type casts and wrapping parens. Strip it here so the
+		-- rendering below only has to decide literal vs. expression.
+		regexp_replace(
+			regexp_replace(
+				regexp_replace(pg_get_expr(d.adbin, d.adrelid), '"([a-z][a-z0-9_]*)"(\()', '\1\2', 'g'),
+				'::"?[a-z][a-z0-9_ ]*"?(\([^)]*\))?(\s+[a-z]+)*(\[\])*', '', 'g'
+			),
+			'^\(([^()]+)\)$', '\1'
+		) AS column_default,
 		NULLIF(btrim(col_description(t.table_oid, a.attnum)), '') AS column_comment,
 		pk.attnum IS NOT NULL AS is_pk,
 		uq.attnum IS NOT NULL AS is_unique
@@ -69,22 +89,27 @@ columns_dbml AS (
 							CASE WHEN is_unique THEN 'unique' END,
 							CASE WHEN NOT is_nullable THEN 'not null' END,
 							CASE WHEN column_default IS NOT NULL
-								THEN format('default: %s', replace(
-									regexp_replace(
-										regexp_replace(
-											regexp_replace(column_default, '"([a-z][a-z0-9_]*)"(\()', '\1\2', 'g'),
-											'::"?[a-z][a-z0-9_ ]*"?(\([^)]*\))?(\s+[a-z]+)*(\[\])*', '', 'g'
-										),
-										'^\(([^()]+)\)$', '\1'
-									),
-									'"', '""'
-								))
+								-- DBML accepts a bare default only for a number, true/false/null or a
+								-- plain string literal. Everything else — a function call, an operator
+								-- expression, CURRENT_TIMESTAMP, a string carrying Postgres' doubled
+								-- quotes — has to be written as a backtick expression.
+								THEN format('default: %s',
+									CASE
+										WHEN column_default ~ '^-?\d+(\.\d+)?$' THEN column_default
+										WHEN lower(column_default) IN ('true', 'false', 'null') THEN lower(column_default)
+										WHEN column_default ~ '^''[^'']*''$' THEN column_default
+										ELSE format('`%s`', column_default)
+									END)
 							END,
 							CASE WHEN column_comment IS NOT NULL
+								-- A DBML string escapes with a backslash, not by doubling: an
+								-- apostrophe must be written \' — the SQL-style doubled form is a
+								-- parse error — and a literal backslash must be doubled or it
+								-- swallows the character after it.
 								THEN format('note: %s',
 									CASE WHEN column_comment ~ E'[\n\r]'
-										THEN format('''''''%s''''''', replace(column_comment, '''', ''''''))
-										ELSE format('''%s''', replace(column_comment, '''', ''''''))
+										THEN format('''''''%s''''''', replace(replace(column_comment, E'\\', E'\\\\'), '''', E'\\'''))
+										ELSE format('''%s''', replace(replace(column_comment, E'\\', E'\\\\'), '''', E'\\'''))
 									  END)
 							  END
 						)
@@ -190,8 +215,8 @@ SELECT
 			CASE WHEN t.table_comment IS NOT NULL
 				THEN format(E'\n  Note: %s',
 					CASE WHEN t.table_comment ~ E'[\n\r]'
-						THEN format('''''''%s''''''', replace(t.table_comment, '''', ''''''))
-						ELSE format('''%s''', replace(t.table_comment, '''', ''''''))
+						THEN format('''''''%s''''''', replace(replace(t.table_comment, E'\\', E'\\\\'), '''', E'\\'''))
+						ELSE format('''%s''', replace(replace(t.table_comment, E'\\', E'\\\\'), '''', E'\\'''))
 					END)
 				ELSE ''
 			END
