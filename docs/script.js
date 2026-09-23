@@ -15,6 +15,8 @@
 		cs: {
 			"header.theme": "Motiv",
 			"header.github": "Zobrazit na GitHubu",
+			"header.sponsor": "Podpora",
+			"header.star": "Hvězdička na GitHubu",
 			"theme.auto": "Auto",
 			"theme.light": "Světlý",
 			"theme.dark": "Tmavý",
@@ -89,6 +91,8 @@
 		en: {
 			"header.theme": "Theme",
 			"header.github": "View on GitHub",
+			"header.sponsor": "Sponsor",
+			"header.star": "Star on GitHub",
 			"theme.auto": "Auto",
 			"theme.light": "Light",
 			"theme.dark": "Dark",
@@ -163,6 +167,8 @@
 		es: {
 			"header.theme": "Tema",
 			"header.github": "Ver en GitHub",
+			"header.sponsor": "Patrocinar",
+			"header.star": "Danos una estrella en GitHub",
 			"theme.auto": "Auto",
 			"theme.light": "Claro",
 			"theme.dark": "Oscuro",
@@ -237,6 +243,8 @@
 		fr: {
 			"header.theme": "Thème",
 			"header.github": "Voir sur GitHub",
+			"header.sponsor": "Sponsoriser",
+			"header.star": "Mettre une étoile sur GitHub",
 			"theme.auto": "Auto",
 			"theme.light": "Clair",
 			"theme.dark": "Sombre",
@@ -311,6 +319,8 @@
 		de: {
 			"header.theme": "Thema",
 			"header.github": "Auf GitHub ansehen",
+			"header.sponsor": "Unterstützen",
+			"header.star": "Stern auf GitHub geben",
 			"theme.auto": "Auto",
 			"theme.light": "Hell",
 			"theme.dark": "Dunkel",
@@ -385,6 +395,8 @@
 		it: {
 			"header.theme": "Tema",
 			"header.github": "Vedi su GitHub",
+			"header.sponsor": "Sostieni",
+			"header.star": "Metti una stella su GitHub",
 			"theme.auto": "Auto",
 			"theme.light": "Chiaro",
 			"theme.dark": "Scuro",
@@ -459,6 +471,8 @@
 		pt: {
 			"header.theme": "Tema",
 			"header.github": "Ver no GitHub",
+			"header.sponsor": "Patrocinar",
+			"header.star": "Dar uma estrela no GitHub",
 			"theme.auto": "Auto",
 			"theme.light": "Claro",
 			"theme.dark": "Escuro",
@@ -565,6 +579,14 @@
 			const key = el.getAttribute('data-t');
 			if (translations[targetLang][key]) {
 				el.innerHTML = translations[targetLang][key];
+			}
+		});
+
+		document.querySelectorAll('[data-t-title]').forEach(el => {
+			const key = el.getAttribute('data-t-title');
+			if (translations[targetLang][key]) {
+				el.setAttribute('title', translations[targetLang][key]);
+				el.setAttribute('aria-label', translations[targetLang][key]);
 			}
 		});
 
