@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `-n`/`--schema` exports only the given schemas (repeatable or comma-separated); relationships leading outside them are omitted
+- `--partitions hide|show` — partitions are hidden by default, so a partitioned table appears once instead of next to every partition. `show` restores the old listing
+- `pg_dbml.sql` takes the same settings as the psql variables `pg_dbml_schemas` and `pg_dbml_partitions`; with none set, `psql -f pg_dbml.sql` still exports the whole database. The CLI now runs the file with `-f` instead of `-c`
+- Partitioned tables are exported. Only ordinary tables were read from the catalog, so the partitioned parent was missing while its partitions were present
+- `postgres://` is accepted as a connection string scheme alongside `postgresql://`
+- Tests for the CLI error paths: a failed export leaves no file behind, an unknown option and a missing option argument are reported, and `--version` works without `psql`
+
+### Fixed
+- Indexes on an expression were dropped (`lower(email)`) or, when mixed with plain columns, emitted with the plain columns only. Expression keys are now written as DBML backtick expressions
+- `INCLUDE` columns of a covering index were listed among the key columns as well as in the note
+- Index column names that need quoting (`"Full Name"`) were emitted bare, which is a parse error
+- A default cast to a schema-qualified type lost only the schema — `'happy'::app.mood` came out as `` `'happy'.mood` ``
+- A negative numeric default, which Postgres stores as `'-1'::integer`, was emitted as the string `'-1'`
+- The expression of a generated column was emitted as its default
+- Foreign keys of a partitioned table were emitted once per partition, and a foreign key pointing at a partitioned table produced a `Ref` to a table that was not in the output. Two constraints over the same columns are emitted once, as the DBML parser rejects the repeat
+- Tables in temporary schemas (`pg_temp_N`) of other sessions are no longer exported
+- A failed export left an empty output file behind and truncated an existing one. The output is now written to a temporary file and moved into place on success
+- An unknown option was taken for a database name, and an option without its argument died with an unbound variable error. Both now print an error and exit with `2`
+- `--version` and `--help` no longer require `psql` to be installed — `make` and the release scripts call `--version`
+- The default output file name ignored `PGDATABASE` and `PGUSER`, and failed where `USER` is not set
+- `pg_dbml.sql` next to the script now takes precedence over a file of the same name in the current directory
+- `pg_dbml.sql` was not found when the script was run through a symlink, as the manual installation in the README suggests
+
+### Documentation
+- README and `llms.txt` state the minimum versions: PostgreSQL server 12, `psql` 11
+
 ## [1.1.3] - 2026-08-04
 
 ### Added

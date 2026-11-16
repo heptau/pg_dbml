@@ -453,6 +453,18 @@
 									<td><code>[DBNAME].dbml</code></td>
 								</tr>
 								<tr>
+									<td><code>--schema</code></td>
+									<td><code>-n</code></td>
+									<td data-t="params.schema">Export only this schema (repeatable or comma-separated). Foreign keys leading outside the selected schemas are omitted.</td>
+									<td data-t="params.all_schemas">all schemas</td>
+								</tr>
+								<tr>
+									<td><code>--partitions</code></td>
+									<td>-</td>
+									<td data-t="params.partitions"><code>hide</code>: a partitioned table is exported once, without its partitions. <code>show</code>: partitions are exported as tables too.</td>
+									<td><code>hide</code></td>
+								</tr>
+								<tr>
 									<td><code>--quiet</code></td>
 									<td><code>-q</code></td>
 									<td data-t="params.quiet">Suppress success message.</td>

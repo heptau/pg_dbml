@@ -6,18 +6,6 @@
 set -euo pipefail
 
 VERSION="1.1.3"
-QUIET=0
-DRY_RUN=0
-
-if ! command -v psql &> /dev/null; then
-	echo "Error: 'psql' not found. Please install PostgreSQL client." >&2
-	exit 1
-fi
-
-if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
-	echo "$VERSION"
-	exit 0
-fi
 
 usage() {
 	cat << EOF
@@ -32,6 +20,10 @@ Parameters:
 	-p, --port PORT      Port (default: PGPORT, else 5432)
 	-U, --user USER      User (default: PGUSER, else OS user name)
 	-d, --dbname DBNAME  Database name (default: PGDATABASE, else user name)
+	-n, --schema SCHEMA  Export only this schema (repeatable, or comma-separated;
+	                     default: all schemas)
+	    --partitions MODE  hide (default): partitioned table without its partitions
+	                       show: partitions are exported as tables too
 	-o, --output FILE    Output file (default: DBNAME.dbml)
 	-q, --quiet          Suppress success message
 	    --dry-run        Preview output without writing file
@@ -42,6 +34,8 @@ Examples:
 	pg_dbml                       # use psql defaults / environment
 	pg_dbml mydb
 	pg_dbml -d mydb -q
+	pg_dbml -d mydb -n public -n billing
+	pg_dbml -d mydb --partitions show
 	pg_dbml -d mydb --dry-run
 	pg_dbml postgresql://user@localhost:5432/mydb
 EOF
@@ -53,6 +47,8 @@ OUTPUT=""
 CONNSTR=""
 QUIET=0
 DRY_RUN=0
+SCHEMAS=""
+PARTITIONS="hide"
 PSQL_ARGS=(
   -v ON_ERROR_STOP=on
   --no-psqlrc
@@ -62,30 +58,53 @@ PSQL_ARGS=(
 
 while [[ $# -gt 0 ]]; do
 	case $1 in
+		-h|--host|-p|--port|-U|--user|-d|--dbname|-o|--output|-n|--schema|--partitions)
+			if [[ $# -lt 2 ]]; then
+				echo "Error: option '$1' requires an argument." >&2
+				exit 2
+			fi
+			;;
+	esac
+	case $1 in
 		-h|--host)       PSQL_ARGS+=(-h "${2}"); shift 2 ;;
 		-p|--port)       PSQL_ARGS+=(-p "${2}"); shift 2 ;;
 		-U|--user)       PSQL_ARGS+=(-U "${2}"); shift 2 ;;
 		-d|--dbname)     PSQL_ARGS+=(-d "${2}"); DBNAME="${2}"; shift 2 ;;
 		-o|--output)     OUTPUT="${2}"; shift 2 ;;
+		-n|--schema)     SCHEMAS="${SCHEMAS:+$SCHEMAS,}${2//[[:space:]]/}"; shift 2 ;;
+		--partitions)
+			case "${2}" in
+				hide|show) PARTITIONS="${2}" ;;
+				*) echo "Error: --partitions must be 'hide' or 'show'." >&2; exit 2 ;;
+			esac
+			shift 2 ;;
 		-q|--quiet)      QUIET=1; shift ;;
 		--dry-run)       DRY_RUN=1; shift ;;
 		-v|--version)    echo "$VERSION"; exit 0 ;;
 		--help)          usage; exit 0 ;;
-		postgresql://*)  PSQL_ARGS+=("${1}"); CONNSTR="${1}";  shift ;;
+		postgresql://*|postgres://*)
+		                 PSQL_ARGS+=("${1}"); CONNSTR="${1}";  shift ;;
+		-*)              echo "Error: unknown option '$1'. See 'pg_dbml --help'." >&2; exit 2 ;;
 		*)               PSQL_ARGS+=(-d "${1}"); DBNAME="${1}"; shift ;;
 	esac
 done
 
+if ! command -v psql &> /dev/null; then
+	echo "Error: 'psql' not found. Please install PostgreSQL client." >&2
+	exit 1
+fi
+
+# psql's own fallback chain for the database name, used to name the output file
+DEFAULT_DBNAME="${PGDATABASE:-${PGUSER:-${USER:-$(id -un)}}}"
+
 if [[ -n "${CONNSTR:-}" ]]; then
 
 	#  CONNSTR="postgresql://user:pass@host:5432/mydb?sslmode=require"
-	DBNAME="$(printf '%s\n' "$CONNSTR" | sed -E 's|^postgresql://([^/@]+(:[^/@]*)?@)?([^/:?]+)?(:[0-9]+)?/?([^?]*)?.*$|\5|')"
-	DBNAME="${DBNAME:-$USER}"
+	DBNAME="$(printf '%s\n' "$CONNSTR" | sed -E 's|^postgres(ql)?://([^/@]+(:[^/@]*)?@)?([^/:?]+)?(:[0-9]+)?/?([^?]*)?.*$|\6|')"
 fi
 
 if [[ -z "$OUTPUT" ]]; then
-	# default DB name is same as username
-	OUTPUT="${DBNAME:-$USER}.dbml"
+	OUTPUT="${DBNAME:-$DEFAULT_DBNAME}.dbml"
 fi
 
 # ─────────────────────────────────────────────────────────────
@@ -93,17 +112,29 @@ fi
 # ─────────────────────────────────────────────────────────────
 # Path resolution priority:
 # 1. PG_DBML_SQL_PATH (Set by Homebrew wrapper during installation)
-# 2. Local fallback paths (For local development/execution)
+# 2. Next to this script (symlinks resolved), then the current directory
 
 if [[ -n "${PG_DBML_SQL_PATH:-}" ]]; then
 	SQL_FILE="${PG_DBML_SQL_PATH}"
 else
-	if [[ -f "pg_dbml.sql" ]]; then
+	# Follow symlinks, so a link to this script in a bin directory still finds the
+	# SQL file next to the real script
+	SCRIPT="$0"
+	while [[ -L "$SCRIPT" ]]; do
+		LINK_TARGET="$(readlink "$SCRIPT")"
+		case "$LINK_TARGET" in
+			/*) SCRIPT="$LINK_TARGET" ;;
+			*)  SCRIPT="$(dirname "$SCRIPT")/$LINK_TARGET" ;;
+		esac
+	done
+	SCRIPT_DIR="$(dirname "$SCRIPT")"
+
+	if [[ -f "$SCRIPT_DIR/pg_dbml.sql" ]]; then
+		SQL_FILE="$SCRIPT_DIR/pg_dbml.sql"
+	elif [[ -f "pg_dbml.sql" ]]; then
 		SQL_FILE="pg_dbml.sql"
 	elif [[ -f "sql/pg_dbml.sql" ]]; then
 		SQL_FILE="sql/pg_dbml.sql"
-	elif [[ -f "$(dirname "$0")/pg_dbml.sql" ]]; then
-		SQL_FILE="$(dirname "$0")/pg_dbml.sql"
 	else
 		echo "Error: pg_dbml.sql file not found!" >&2
 		echo "Please place it in the same directory, 'sql/' subdirectory, or use the Homebrew installation." >&2
@@ -111,19 +142,32 @@ else
 	fi
 fi
 
-SQL=$(cat "$SQL_FILE")
+# The SQL file reads its settings from psql variables, which psql expands only in
+# a script file (-f), not in -c. Unset variables fall back to the file's defaults.
+PSQL_ARGS+=(-v "pg_dbml_partitions=${PARTITIONS}" -f "$SQL_FILE")
+if [[ -n "$SCHEMAS" ]]; then
+	PSQL_ARGS+=(-v "pg_dbml_schemas=${SCHEMAS}")
+fi
 
 if [[ $DRY_RUN == 1 ]]; then
 
-	psql "${PSQL_ARGS[@]}" -c "$SQL"
+	psql "${PSQL_ARGS[@]}"
+
+elif [[ -e "$OUTPUT" && ! -f "$OUTPUT" ]]; then
+
+	# A device or pipe (/dev/stdout, /dev/null) cannot be replaced by a rename
+	psql "${PSQL_ARGS[@]}" --quiet > "$OUTPUT"
 
 else
-	if psql "${PSQL_ARGS[@]}" --quiet -c "$SQL" > "$OUTPUT"; then
+	# Write to a temporary file first, so a failed export neither leaves an empty
+	# file behind nor destroys an existing one.
+	TMP_OUTPUT="${OUTPUT}.tmp.$$"
+	trap 'rm -f "$TMP_OUTPUT"' EXIT
 
-		if [[ "${QUIET}" == 0 ]]; then
-			echo "✅ DBML generated → $OUTPUT"
-		fi
-	else
-		exit "${?}"
+	psql "${PSQL_ARGS[@]}" --quiet > "$TMP_OUTPUT"
+	mv -f "$TMP_OUTPUT" "$OUTPUT"
+
+	if [[ "${QUIET}" == 0 ]]; then
+		echo "✅ DBML generated → $OUTPUT"
 	fi
 fi

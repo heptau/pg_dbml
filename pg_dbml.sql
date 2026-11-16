@@ -1,3 +1,19 @@
+-- pg_dbml.sql — PostgreSQL → DBML exporter.
+--
+-- Run standalone to export the whole database:
+--     psql --no-psqlrc -tA -f pg_dbml.sql mydb > mydb.dbml
+--
+-- Optional psql variables (defaults keep the export of everything):
+--     pg_dbml_schemas     comma-separated schema names to export, '' = all
+--                         e.g.  psql -v pg_dbml_schemas=public,app -f pg_dbml.sql
+--     pg_dbml_partitions  'hide' (default): export a partitioned table once, without
+--                         its partitions; 'show': export every partition as a table too
+--                         e.g.  psql -v pg_dbml_partitions=show -f pg_dbml.sql
+-- Relationships are only emitted when both tables are exported, so a schema filter
+-- drops foreign keys that point outside the selected schemas.
+\if :{?pg_dbml_schemas} \else \set pg_dbml_schemas '' \endif
+\if :{?pg_dbml_partitions} \else \set pg_dbml_partitions 'hide' \endif
+
 WITH
 tables AS (
 	SELECT
@@ -7,9 +23,14 @@ tables AS (
 		NULLIF(btrim(obj_description(c.oid)), '') AS table_comment
 	FROM pg_class AS c
 	JOIN pg_namespace AS n ON n.oid = c.relnamespace
-	WHERE c.relkind = 'r'
-	  AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-	  AND n.nspname !~ '^pg_toast'
+	-- 'p' is a partitioned table: the parent holds no rows itself, but it is the table
+	-- the schema is designed around and the one foreign keys point at.
+	WHERE c.relkind IN ('r', 'p')
+	  AND n.nspname <> 'information_schema'
+	  AND n.nspname !~ '^pg_'
+	  AND (:'pg_dbml_schemas' = '' OR n.nspname = ANY (string_to_array(:'pg_dbml_schemas', ',')))
+	  -- A partition is a storage detail of its parent; unless asked for, leave it out.
+	  AND (:'pg_dbml_partitions' = 'show' OR NOT c.relispartition)
 ),
 pk_columns AS (
 	SELECT conrelid AS table_oid, unnest(conkey) AS attnum
@@ -18,7 +39,7 @@ pk_columns AS (
 	  AND conrelid IN (SELECT table_oid FROM tables)
 ),
 unique_columns AS (
-	SELECT conrelid AS table_oid, conkey[1] AS attnum
+	SELECT DISTINCT conrelid AS table_oid, conkey[1] AS attnum
 	FROM pg_constraint
 	WHERE contype = 'u' AND array_length(conkey, 1) = 1
 	  AND conrelid IN (SELECT table_oid FROM tables)
@@ -56,14 +77,19 @@ columns AS (
 		NOT a.attnotnull AS is_nullable,
 		-- pg_get_expr() renders the stored expression with Postgres noise: quoted
 		-- function names, ::type casts and wrapping parens. Strip it here so the
-		-- rendering below only has to decide literal vs. expression.
-		regexp_replace(
+		-- rendering below only has to decide literal vs. expression. The cast may be
+		-- schema-qualified ('happy'::app.mood), so the schema goes with the type.
+		-- A generated column keeps its expression in pg_attrdef too, but that is not
+		-- a default, so it is skipped.
+		CASE WHEN a.attgenerated = '' THEN
 			regexp_replace(
-				regexp_replace(pg_get_expr(d.adbin, d.adrelid), '"([a-z][a-z0-9_]*)"(\()', '\1\2', 'g'),
-				'::"?[a-z][a-z0-9_ ]*"?(\([^)]*\))?(\s+[a-z]+)*(\[\])*', '', 'g'
-			),
-			'^\(([^()]+)\)$', '\1'
-		) AS column_default,
+				regexp_replace(
+					regexp_replace(pg_get_expr(d.adbin, d.adrelid), '"([a-z][a-z0-9_]*)"(\()', '\1\2', 'g'),
+					'::(("[^"]+"|[a-z_][a-z0-9_]*)\.)?("[^"]+"|[a-z_][a-z0-9_ ]*)(\([^)]*\))?(\s+[a-z]+)*(\[\])*', '', 'g'
+				),
+				'^\(([^()]+)\)$', '\1'
+			)
+		END AS column_default,
 		NULLIF(btrim(col_description(t.table_oid, a.attnum)), '') AS column_comment,
 		pk.attnum IS NOT NULL AS is_pk,
 		uq.attnum IS NOT NULL AS is_unique
@@ -80,7 +106,7 @@ columns_dbml AS (
 		string_agg(
 			format('  %I %s%s',
 				column_name,
-				CASE WHEN data_type LIKE '% %' THEN format('"%s"', data_type) ELSE data_type END,
+				CASE WHEN data_type LIKE '% %' AND data_type NOT LIKE '%"%' THEN format('"%s"', data_type) ELSE data_type END,
 				CASE WHEN is_pk OR NOT is_nullable OR is_unique OR column_default IS NOT NULL OR column_comment IS NOT NULL
 					THEN
 						' [' ||
@@ -96,6 +122,11 @@ columns_dbml AS (
 								THEN format('default: %s',
 									CASE
 										WHEN column_default ~ '^-?\d+(\.\d+)?$' THEN column_default
+										-- Postgres stores a negative number as a quoted literal with a
+										-- cast ('-1'::integer); on a numeric column it is still a number.
+										WHEN column_default ~ '^''-?\d+(\.\d+)?''$'
+											AND data_type ~ '^(smallint|int|bigint|numeric|decimal|real|float8)($|\()'
+											THEN btrim(column_default, '''')
 										WHEN lower(column_default) IN ('true', 'false', 'null') THEN lower(column_default)
 										WHEN column_default ~ '^''[^'']*''$' THEN column_default
 										ELSE format('`%s`', column_default)
@@ -130,18 +161,31 @@ indexes AS (
 		ix.indisprimary,
 		ix.indisunique,
 		am.amname AS index_type,
-		string_agg(a.attname, ', ' ORDER BY array_position(ix.indkey, a.attnum)) AS columns_list,
-		CASE WHEN ix.indnkeyatts < array_length(ix.indkey, 1)
-			THEN string_agg(a.attname, ', ') FILTER (WHERE array_position(ix.indkey, a.attnum) >= ix.indnkeyatts)
-			ELSE NULL
-		END AS include_columns
+		ix.indnkeyatts AS key_count,
+		k.columns_list,
+		k.include_columns
 	FROM tables AS t
 	JOIN pg_index AS ix ON ix.indrelid = t.table_oid
 	JOIN pg_class AS i ON i.oid = ix.indexrelid
 	JOIN pg_am AS am ON am.oid = i.relam
-	JOIN pg_attribute AS a ON a.attrelid = t.table_oid AND a.attnum = ANY(ix.indkey)
-	WHERE NOT ix.indisprimary OR array_length(ix.indkey, 1) > 1
-	GROUP BY t.table_oid, i.relname, ix.indisprimary, ix.indisunique, am.amname, ix.indnkeyatts, ix.indkey
+	-- Walk the index positions rather than joining pg_attribute: an expression key has
+	-- no attribute (indkey = 0) and must be written as a backtick expression, and the
+	-- INCLUDE columns that follow the key columns are not part of the key.
+	-- pg_get_indexdef() already quotes a column name where it needs quoting.
+	CROSS JOIN LATERAL (
+		SELECT
+			string_agg(
+				CASE WHEN ix.indkey[s.n - 1] = 0
+					THEN format('`%s`', pg_get_indexdef(ix.indexrelid, s.n, true))
+					ELSE pg_get_indexdef(ix.indexrelid, s.n, true)
+				END,
+				', ' ORDER BY s.n
+			) FILTER (WHERE s.n <= ix.indnkeyatts) AS columns_list,
+			string_agg(pg_get_indexdef(ix.indexrelid, s.n, true), ', ' ORDER BY s.n)
+				FILTER (WHERE s.n > ix.indnkeyatts) AS include_columns
+		FROM generate_series(1, ix.indnatts) AS s(n)
+	) AS k
+	WHERE NOT ix.indisprimary OR ix.indnkeyatts > 1
 ),
 indexes_dbml AS (
 	SELECT
@@ -149,14 +193,14 @@ indexes_dbml AS (
 		format(E'\n  Indexes {\n    %s\n  }',
 			string_agg(
 				format('%s [%s]',
-					CASE WHEN columns_list ~ ',' THEN format('(%s)', columns_list) ELSE columns_list END,
+					CASE WHEN key_count > 1 THEN format('(%s)', columns_list) ELSE columns_list END,
 					concat_ws(', ',
 						CASE WHEN indisprimary THEN 'pk' END,
 						format('type: %s', index_type),
 						CASE WHEN indisunique AND NOT indisprimary THEN 'unique' END,
 						format('name: "%s"', index_name),
 						CASE WHEN include_columns IS NOT NULL
-							 THEN format('note: ''INCLUDE (%s)''', include_columns)
+							 THEN format('note: ''INCLUDE (%s)''', replace(include_columns, '''', E'\\'''))
 						END
 					)
 				),
@@ -173,17 +217,16 @@ fk_cols AS (
 		string_agg(quote_ident(src.attname), ', ' ORDER BY ordinality) AS src_cols,
 		string_agg(quote_ident(tgt.attname), ', ' ORDER BY ordinality) AS tgt_cols
 	FROM pg_constraint AS con
-	JOIN pg_class AS cl1 ON cl1.oid = con.conrelid
-	JOIN pg_namespace AS ns1 ON ns1.oid = cl1.relnamespace
 	CROSS JOIN LATERAL unnest(con.conkey, con.confkey) WITH ORDINALITY AS u(src_attnum, tgt_attnum, ordinality)
 	JOIN pg_attribute AS src ON src.attrelid = con.conrelid  AND src.attnum = u.src_attnum
 	JOIN pg_attribute AS tgt ON tgt.attrelid = con.confrelid AND tgt.attnum = u.tgt_attnum
 	WHERE con.contype = 'f'
-	  AND ns1.nspname NOT IN ('pg_catalog', 'information_schema')
-	GROUP BY con.oid, array_length(con.conkey, 1)
+	GROUP BY con.oid
 ),
 foreign_keys AS (
-	SELECT
+	-- Two constraints over the same columns are one relationship in DBML, and the
+	-- parser rejects the repeat, so only the first by name is kept.
+	SELECT DISTINCT ON (con.conrelid, con.confrelid, con.conkey, con.confkey)
 		format(
 			'Ref %I: %I.%I.%s > %I.%I.%s',
 			con.conname,
@@ -202,8 +245,13 @@ foreign_keys AS (
 	JOIN pg_class AS cl2 ON cl2.oid = con.confrelid
 	JOIN pg_namespace AS ns2 ON ns2.oid = cl2.relnamespace
 	WHERE con.contype = 'f'
-	  AND ns1.nspname NOT IN ('pg_catalog', 'information_schema')
-	  AND ns2.nspname NOT IN ('pg_catalog', 'information_schema')
+	  -- Both ends must be exported tables, or the Ref would name a table that is not
+	  -- in the output. conparentid marks the copy of a partitioned table's constraint
+	  -- that Postgres creates on every partition; the parent's one is enough.
+	  AND con.conparentid = 0
+	  AND con.conrelid IN (SELECT table_oid FROM tables)
+	  AND con.confrelid IN (SELECT table_oid FROM tables)
+	ORDER BY con.conrelid, con.confrelid, con.conkey, con.confkey, con.conname
 )
 SELECT
 	string_agg(

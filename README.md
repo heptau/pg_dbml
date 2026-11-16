@@ -55,6 +55,14 @@ ln -s $(pwd)/pg_dbml /usr/local/bin/pg_dbml
 
 *Note: Manual installation requires `psql` (PostgreSQL client) to be installed and available in your system PATH.*
 
+### Requirements
+
+| Component | Minimum version | Why |
+| :--- | :--- | :--- |
+| PostgreSQL server | 12 | The query reads catalog columns added for generated columns (12), `INCLUDE` indexes and partitioned-table foreign keys (11). |
+| `psql` client | 11 | `pg_dbml.sql` uses the `:{?variable}` test to give its settings a default. |
+| Bash | 3.2 | The version shipped with macOS is enough. |
+
 ## ⚙️ Usage
 
 The primary way to use this project is via the `pg_dbml` command-line script.
@@ -96,10 +104,19 @@ pg_dbml
 | `--port` | `-p` | PostgreSQL port. | No | `PGPORT`, else `5432` |
 | `--user` | `-U` | Database user name. | No | `PGUSER`, else OS user name |
 | `--output` | `-o` | Path where the `.dbml` file will be saved. | No | `[DBNAME].dbml` |
+| `--schema` | `-n` | Export only this schema. Repeatable or comma-separated. Foreign keys leading outside the selected schemas are omitted. | No | all schemas |
+| `--partitions` | | `hide`: a partitioned table is exported once, without its partitions. `show`: partitions are exported as tables too. | No | `hide` |
 | `--quiet` | `-q` | Suppress success message. | No | |
 | `--dry-run` | | Preview output without writing file. | No | |
 | `--version`| `-v` | Show script version. | No | |
 | `--help` | | Show help message. | No | |
+
+**Running the SQL directly:** `pg_dbml.sql` works on its own and exports the whole database with no parameters. The options above map to psql variables:
+
+```bash
+psql --no-psqlrc -tA -f pg_dbml.sql mydb > mydb.dbml
+psql --no-psqlrc -tA -v pg_dbml_schemas=public,billing -v pg_dbml_partitions=show -f pg_dbml.sql mydb
+```
 
 **Examples:**
 

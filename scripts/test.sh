@@ -47,11 +47,42 @@ else
 fi
 
 # Failed export exits with non zero
-./pg_dbml -d template0 > /dev/null 2>&1
+FAIL_OUT=$(mktemp -u "${TMPDIR:-/tmp}/pg_dbml_fail_XXXXXX")
+./pg_dbml -d template0 -o "$FAIL_OUT" > /dev/null 2>&1
 if [[ $? -ne 0 ]]; then
 	test_ok "  Failed export exits with non-zero"
 else
 	test_fail "  Failed export exits with non-zero"
+fi
+
+# ...and leaves no empty or partial output file behind
+if [[ ! -e "$FAIL_OUT" ]]; then
+	test_ok "  Failed export leaves no output file"
+else
+	test_fail "  Failed export leaves no output file"
+	rm -f "$FAIL_OUT"
+fi
+
+# Unknown option is rejected instead of being taken for a database name
+./pg_dbml --no-such-option > /dev/null 2>&1
+if [[ $? -eq 2 ]]; then
+	test_ok "  Unknown option exits 2"
+else
+	test_fail "  Unknown option exits 2"
+fi
+
+# Option without its argument reports an error instead of an unbound variable
+if ./pg_dbml -o 2>&1 | grep -q "requires an argument"; then
+	test_ok "  Missing option argument is reported"
+else
+	test_fail "  Missing option argument is reported"
+fi
+
+# --version works without psql installed (make and the release scripts rely on it)
+if PATH="/nonexistent" "$BASH" ./pg_dbml --version 2>/dev/null | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+	test_ok "  --version works without psql"
+else
+	test_fail "  --version works without psql"
 fi
 
 # Positional DBNAME reaches psql as a separate -d argument, not a single "-d name" string.
@@ -82,6 +113,19 @@ if [[ -f "$STUB_DIR/positional_db.dbml" ]]; then
 	test_ok "  Positional DBNAME sets default output file name"
 else
 	test_fail "  Positional DBNAME sets default output file name"
+fi
+
+# Run through a symlink from another directory, the SQL file is still found next
+# to the real script (the manual installation in the README does exactly this)
+ln -s "$REPO_ROOT/pg_dbml" "$STUB_DIR/pg_dbml_link"
+(
+	cd "$STUB_DIR" || exit 1
+	PSQL_ARGV_LOG="$STUB_DIR/argv" PATH="$STUB_DIR:$PATH" ./pg_dbml_link positional_db --dry-run > /dev/null 2>&1
+)
+if [[ $? -eq 0 ]]; then
+	test_ok "  SQL file found when run through a symlink"
+else
+	test_fail "  SQL file found when run through a symlink"
 fi
 
 rm -rf "$STUB_DIR"
@@ -240,6 +284,63 @@ else
 	else
 		test_fail "  Without -q: success message on stdout"
 	fi
+fi
+
+# =============================================================================
+# Partitions and schema filter — creates a throwaway database
+# =============================================================================
+echo ""
+echo "  Partitions and schema filter"
+
+# Created on the server the tests above use (PG_TEST_URL), so it also runs in CI;
+# without one, on whatever psql connects to by default.
+SCRATCH_DB="pg_dbml_test_$$"
+if psql "$TEST_DB_URL" -c "SELECT 1" &>/dev/null; then
+	ADMIN_TARGET="$TEST_DB_URL"
+	SCRATCH_TARGET=$(sed -E "s|^([a-z]+://[^/?]*)(/[^?]*)?|\\1/${SCRATCH_DB}|" <<< "$TEST_DB_URL")
+else
+	ADMIN_TARGET="postgres"
+	SCRATCH_TARGET="$SCRATCH_DB"
+fi
+
+if psql --no-psqlrc -q "$ADMIN_TARGET" -c "CREATE DATABASE $SCRATCH_DB" &>/dev/null; then
+	trap 'psql --no-psqlrc -q "$ADMIN_TARGET" -c "DROP DATABASE IF EXISTS $SCRATCH_DB" &>/dev/null' EXIT
+
+	psql -q --no-psqlrc "$SCRATCH_TARGET" > /dev/null <<'SQL'
+CREATE SCHEMA a; CREATE SCHEMA b;
+CREATE TABLE a.parent (id int, d date, PRIMARY KEY (id, d)) PARTITION BY RANGE (d);
+CREATE TABLE a.p1 PARTITION OF a.parent FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+CREATE TABLE b.t (id int PRIMARY KEY, pid int, pd date, FOREIGN KEY (pid, pd) REFERENCES a.parent (id, d));
+SQL
+	tables() { grep -E '^Table ' | sed -E 's/^Table ([^ ]+).*/\1/' | paste -sd, -; }
+	refs()   { grep -cE '^Ref ' || true; }
+	check() { # description expected actual
+		if [[ "$2" == "$3" ]]; then test_ok "  $1"; else test_fail "  $1 (expected '$2', got '$3')"; fi
+	}
+
+	check "Partitions are hidden by default" "a.parent,b.t" \
+		"$(./pg_dbml "$SCRATCH_TARGET" --dry-run | tables)"
+	check "--partitions show exports partitions too" "a.p1,a.parent,b.t" \
+		"$(./pg_dbml "$SCRATCH_TARGET" --partitions show --dry-run | tables)"
+	check "Foreign key to a partitioned table is emitted once" 1 \
+		"$(./pg_dbml "$SCRATCH_TARGET" --partitions show --dry-run | refs)"
+	check "--schema limits the export" "b.t" \
+		"$(./pg_dbml "$SCRATCH_TARGET" -n b --dry-run | tables)"
+	check "--schema omits foreign keys leading outside" 0 \
+		"$(./pg_dbml "$SCRATCH_TARGET" -n b --dry-run | refs)"
+	check "--schema is repeatable" "a.parent,b.t" \
+		"$(./pg_dbml "$SCRATCH_TARGET" -n a -n b --dry-run | tables)"
+	check "--schema accepts a comma-separated list" "a.parent,b.t" \
+		"$(./pg_dbml "$SCRATCH_TARGET" -n a,b --dry-run | tables)"
+	check "pg_dbml.sql run directly via psql exports the whole database" "a.parent,b.t" \
+		"$(psql --no-psqlrc -tAq -f pg_dbml.sql "$SCRATCH_TARGET" | tables)"
+	check "pg_dbml.sql honours pg_dbml_schemas when run via psql" "b.t" \
+		"$(psql --no-psqlrc -tAq -v pg_dbml_schemas=b -f pg_dbml.sql "$SCRATCH_TARGET" | tables)"
+
+	./pg_dbml "$SCRATCH_TARGET" --partitions bogus > /dev/null 2>&1
+	check "Invalid --partitions value exits 2" 2 "$?"
+else
+	test_skip "Partition tests (cannot create a scratch database)"
 fi
 
 # =============================================================================

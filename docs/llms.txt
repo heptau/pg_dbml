@@ -15,7 +15,7 @@ pg_dbml is a CLI tool that introspects a PostgreSQL database and exports its com
 ## Key Facts
 
 - Language: Bash + SQL
-- Requires: psql (PostgreSQL client)
+- Requires: psql 11 or newer (PostgreSQL client), PostgreSQL server 12 or newer
 - License: MIT
 - Install: `brew install heptau/tap/pg-dbml` or manual clone from GitHub
 - Output format: DBML (dbml.io)
@@ -24,11 +24,11 @@ pg_dbml is a CLI tool that introspects a PostgreSQL database and exports its com
 
 Across all user schemas (excluding pg_catalog and information_schema):
 
-- Tables with fully qualified `schema.table` names
+- Tables with fully qualified `schema.table` names, including partitioned tables (partitions themselves are hidden by default)
 - Column names, data types (normalized: `character varying` → `varchar`, etc.)
 - Primary keys, unique constraints, NOT NULL constraints
 - Default values (casts stripped, clean output)
-- Indexes — including composite indexes and INCLUDE columns
+- Indexes — including composite indexes, expression indexes and INCLUDE columns
 - Foreign key references with constraint names
 - Table and column comments from PostgreSQL metadata
 
@@ -62,3 +62,14 @@ pg_dbml postgresql://user:pass@localhost:5432/my_database
 ## Connection defaults
 
 Connection parameters (`-h`/`--host`, `-p`/`--port`, `-U`/`--user`, `-d`/`--dbname`) are forwarded to `psql` only when provided. Anything omitted falls back to `psql`'s own defaults and the standard libpq environment variables (`PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE`), so `pg_dbml` with no arguments works in an environment already configured for `psql`.
+
+## Filtering options
+
+- `-n`/`--schema SCHEMA` — export only the given schema. Repeatable or comma-separated (`-n public,billing`). Foreign keys leading outside the selected schemas are omitted. Default: all schemas.
+- `--partitions hide|show` — `hide` (default) exports a partitioned table once, without its partitions; `show` exports partitions as tables too.
+
+```bash
+pg_dbml -d my_database --schema public,billing --partitions show
+```
+
+When running `pg_dbml.sql` directly with psql, the same settings are the variables `pg_dbml_schemas` and `pg_dbml_partitions`.
