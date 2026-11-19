@@ -5,7 +5,8 @@ set -euo pipefail
 #
 # Usage:
 #   scripts/release.sh --local    Build and verify artifacts (no git, no push)
-#   scripts/release.sh --github   Full release: tag, push, GitHub release, Homebrew tap
+#   scripts/release.sh --github [X.Y.Z]
+#                                 Full release: tag, push, GitHub release, Homebrew tap
 #
 # Environment variables:
 #   HOMEBREW_TAP_REPO     GitHub repo of the Homebrew tap (default: heptau/homebrew-tap)
@@ -13,8 +14,9 @@ set -euo pipefail
 # =============================================================================
 
 MODE="${1:-}"
+NEW_VERSION="${2:-}"
 if [[ "$MODE" != "--local" && "$MODE" != "--github" ]]; then
-	echo "Usage: $0 [--local|--github]"
+	echo "Usage: $0 [--local|--github [X.Y.Z]]"
 	echo ""
 	echo "  --local   Build artifacts and verify — no git operations, no push"
 	echo "  --github  Full release: tag, push, GitHub release, update Homebrew tap"
@@ -26,6 +28,42 @@ cd "$DIR/.."
 
 HOMEBREW_TAP_REPO="${HOMEBREW_TAP_REPO:-heptau/homebrew-tap}"
 HOMEBREW_TAP_FORMULA="${HOMEBREW_TAP_FORMULA:-Formula/pg-dbml.rb}"
+
+# ── Optional version bump ────────────────────────────────────────────────────
+if [[ -n "$NEW_VERSION" ]]; then
+	[[ "$MODE" == "--github" ]] || { echo "Error: version can only be set with --github"; exit 1; }
+	[[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Error: invalid version '$NEW_VERSION' (expected X.Y.Z)"; exit 1; }
+	if ! git diff --quiet || ! git diff --cached --quiet; then
+		echo "Error: uncommitted changes present. Commit or stash before releasing."
+		exit 1
+	fi
+	if git rev-parse -q --verify "refs/tags/v${NEW_VERSION}" >/dev/null; then
+		echo "Error: tag v${NEW_VERSION} already exists."
+		exit 1
+	fi
+	OLD_VERSION=$(./pg_dbml --version)
+	if [[ "$OLD_VERSION" != "$NEW_VERSION" ]]; then
+		echo "==> Bumping version to ${NEW_VERSION}..."
+		sed -i.bak -E "s/^VERSION=\"[^\"]*\"/VERSION=\"${NEW_VERSION}\"/" pg_dbml
+		rm -f pg_dbml.bak
+		[[ "$(./pg_dbml --version)" == "$NEW_VERSION" ]] || { echo "Error: version bump failed"; git checkout pg_dbml; exit 1; }
+		git add pg_dbml
+		if grep -q '^## \[Unreleased\]' CHANGELOG.md; then
+			echo "==> Updating CHANGELOG.md..."
+			TODAY=$(date +%Y-%m-%d)
+			awk -v new="$NEW_VERSION" -v old="$OLD_VERSION" -v today="$TODAY" '
+				/^## \[Unreleased\]/ { print; print ""; print "## [" new "] - " today; next }
+				index($0, "[" old "]:") == 1 && !done {
+					print "[" new "]: https://github.com/heptau/pg_dbml/compare/v" old "...v" new; done=1
+				}
+				{ print }
+			' CHANGELOG.md > CHANGELOG.md.tmp && mv CHANGELOG.md.tmp CHANGELOG.md
+			git add CHANGELOG.md
+		fi
+		git commit -m "release: v${NEW_VERSION}"
+		echo ""
+	fi
+fi
 
 VERSION=$(./pg_dbml --version)
 
@@ -78,7 +116,7 @@ if git tag -l "v${VERSION}" | grep -q .; then
 else
 	git tag -a "v${VERSION}" -m "pg_dbml v${VERSION}"
 fi
-git push origin "v${VERSION}"
+git push origin HEAD "v${VERSION}"
 echo ""
 
 # Extract release notes for this version from CHANGELOG.md
