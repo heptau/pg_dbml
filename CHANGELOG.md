@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-19
+
 ### Added
 - `-n`/`--schema` exports only the given schemas (repeatable or comma-separated); relationships leading outside them are omitted
 - `--partitions hide|show` — partitions are hidden by default, so a partitioned table appears once instead of next to every partition. `show` restores the old listing
@@ -125,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DBML output covering tables, columns, data types, constraints, indexes, foreign keys, and comments
 - Homebrew distribution via tap
 
+[1.2.0]: https://github.com/heptau/pg_dbml/compare/v1.1.3...v1.2.0
 [1.1.3]: https://github.com/heptau/pg_dbml/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/heptau/pg_dbml/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/heptau/pg_dbml/compare/v1.1.0...v1.1.1
